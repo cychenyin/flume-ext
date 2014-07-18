@@ -65,6 +65,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			client = connectionManager.checkout();
 
 			Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
+			LOGGER.warn("message topic={}", m.getTopic());
 			doAppend(client, m).get(requestTimeout, TimeUnit.MILLISECONDS);
 
 		} catch (Throwable e) {
@@ -108,6 +109,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
+			// LOGGER.warn("appendBatch size={}", events.size());
 			client = connectionManager.checkout();
 			for (Event event : events) {
 				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
@@ -180,7 +182,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 	}
 
 	private void dump(Properties properties) {
-		System.out.println("dumpppppppppp");
+		System.out.println("dumpppppppppppppppppppppppppppppppp");
 		for(Object key : properties.keySet()) {
 //			System.out.println(properties.getProperty(key.toString()));
 			LOGGER.warn("{}={}", key.toString(), properties.getProperty(key.toString()));
@@ -194,11 +196,12 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		stateLock.lock();
 		try {
 			dump(properties);
+		        LOGGER.warn("properties.getProperty(hosts.h1)={}", properties.getProperty("hosts.h1"));	
+			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
+			hostname = host.getHostName();
+			port = host.getPortNumber();
 			
-//			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
-//			hostname = host.getHostName();
-//			port = host.getPortNumber();
-			
+			LOGGER.warn("===========hostname={} port={}", this.hostname, this.port );
 			compressMsgBodyOverHowmuch = Integer.parseInt(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_COMPRESSION_LEVEL,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_COMPRESSION_LEVEL)));
@@ -252,7 +255,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		});
 	}
 
-	// rocketmq productor api不支持批量， 所有这里是一个awful实现
+	// rocketmq producor api不支持批量， 所有这里是一个awful实现
 	private Future<Void> doAppendBatch(final ClientWrapper client, final List<Message> ms) throws Exception {
 
 		return callTimeoutPool.submit(new Callable<Void>() {
@@ -278,12 +281,12 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		private final int hashCode;
 
 		public ClientWrapper() throws Exception {
-			producer = new DefaultMQProducer("CateyeProducer");
-			producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
-			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
-			producer.setInstanceName("CateyeProducer");
+			producer = new DefaultMQProducer("cateye");
+			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
+			producer.setNamesrvAddr("127.0.0.1:9876");
+			// producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
 			producer.start();
-
+			LOGGER.warn("getCreateTopicKey={}", producer.getCreateTopicKey());
 			hashCode = producer.hashCode();
 		}
 
