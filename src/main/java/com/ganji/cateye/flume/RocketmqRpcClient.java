@@ -109,7 +109,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
-			// LOGGER.warn("appendBatch size={}", events.size());
+			LOGGER.warn("appendBatch size={}", events.size());
 			client = connectionManager.checkout();
 			for (Event event : events) {
 				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());

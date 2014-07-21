@@ -21,7 +21,7 @@ public class Entry {
 			logger.warn("server starting");
 		}
 
-		int count = args != null && args.length > 0 ? Integer.parseInt(args[0]) : 10;
+		int count = args != null && args.length > 0 ? Integer.parseInt(args[0]) : Integer.MAX_VALUE;
 		sendlogBackground(count);
 		System.out.println("done.");
 
@@ -78,7 +78,7 @@ public class Entry {
 			return;
 		}
 		int threadCount = 10;
-		final int batchSize = logCount / threadCount;
+		final int batchSize = logCount < Integer.MAX_VALUE ? logCount / threadCount : Integer.MAX_VALUE;
 		List<Thread> threads = new ArrayList<Thread>(threadCount);
 		for (int i = 0; i < threadCount; i++) {
 			Thread t = new Thread(new Runnable() {
@@ -98,6 +98,7 @@ public class Entry {
 				e.printStackTrace();
 			}
 		}
+		
 	}
 
 	private static String body_;
@@ -124,6 +125,9 @@ public class Entry {
 				System.out.println("flume test log, rnd=" + rnd + " count=" + i);
 			}
 			logger.warn("flume test log, rnd={} count={} {}", rnd, i, body());
+			if(i == Integer.MAX_VALUE) {
+				i = 1;
+			}
 		}
 	}
 
