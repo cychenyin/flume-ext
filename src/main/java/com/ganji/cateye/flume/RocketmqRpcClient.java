@@ -195,7 +195,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		}
 		stateLock.lock();
 		try {
-			dump(properties);
+			//dump(properties);
 		        LOGGER.warn("properties.getProperty(hosts.h1)={}", properties.getProperty("hosts.h1"));	
 			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
 			hostname = host.getHostName();
@@ -282,8 +282,10 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 
 		public ClientWrapper() throws Exception {
 			producer = new DefaultMQProducer("cateye");
-			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
+			producer.setCreateTopicKey("cateye");
+			producer.setProducerGroup("cateye");
 			producer.setNamesrvAddr("127.0.0.1:9876");
+			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
 			// producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
 			producer.start();
 			LOGGER.warn("getCreateTopicKey={}", producer.getCreateTopicKey());
