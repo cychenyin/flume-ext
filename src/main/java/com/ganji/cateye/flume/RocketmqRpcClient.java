@@ -35,6 +35,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 	private final ExecutorService callTimeoutPool;
 	private final AtomicLong threadCounter;
 	private int connectionPoolSize;
+
 	// private final Random random = new Random();
 
 	public RocketmqRpcClient() {
@@ -47,8 +48,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			@Override
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
-				t.setName("Flume Thrift RPC thread - " + String.valueOf(
-						threadCounter.incrementAndGet()));
+				t.setName("Flume Thrift RPC thread - " + String.valueOf(threadCounter.incrementAndGet()));
 				return t;
 			}
 		});
@@ -183,11 +183,12 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 
 	private void dump(Properties properties) {
 		System.out.println("dumpppppppppppppppppppppppppppppppp");
-		for(Object key : properties.keySet()) {
-//			System.out.println(properties.getProperty(key.toString()));
+		for (Object key : properties.keySet()) {
+			// System.out.println(properties.getProperty(key.toString()));
 			LOGGER.warn("{}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}
+
 	@Override
 	protected void configure(Properties properties) throws FlumeException {
 		if (isActive()) {
@@ -195,19 +196,20 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		}
 		stateLock.lock();
 		try {
-			dump(properties);
-		        LOGGER.warn("properties.getProperty(hosts.h1)={}", properties.getProperty("hosts.h1"));	
+//			dump(properties);
+			LOGGER.warn("properties.getProperty(hosts.h1)={}", properties.getProperty("hosts.h1"));
 			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
 			hostname = host.getHostName();
 			port = host.getPortNumber();
-			
-			LOGGER.warn("===========hostname={} port={}", this.hostname, this.port );
+
+			LOGGER.warn("===========hostname={} port={}", this.hostname, this.port);
 			compressMsgBodyOverHowmuch = Integer.parseInt(properties.getProperty(
-					RpcClientConfigurationConstants.CONFIG_COMPRESSION_LEVEL,
-					String.valueOf(RpcClientConfigurationConstants.DEFAULT_COMPRESSION_LEVEL)));
+					"compress-msg-body-over-how-much",
+					String.valueOf(4000)));
+
 			batchSize = Integer.parseInt(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_BATCH_SIZE,
-					/*RpcClientConfigurationConstants.DEFAULT_BATCH_SIZE.toString()*/ "1"));
+					/* RpcClientConfigurationConstants.DEFAULT_BATCH_SIZE.toString() */"50"));
 			requestTimeout = Long.parseLong(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_REQUEST_TIMEOUT,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
@@ -282,9 +284,11 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 
 		public ClientWrapper() throws Exception {
 			producer = new DefaultMQProducer("cateye");
-			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
+			producer.setCreateTopicKey("cateye");
+			producer.setProducerGroup("cateye");
 			producer.setNamesrvAddr("127.0.0.1:9876");
-			// producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
+			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
+			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
 			producer.start();
 			LOGGER.warn("getCreateTopicKey={}", producer.getCreateTopicKey());
 			hashCode = producer.hashCode();
@@ -325,15 +329,14 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		}
 
 		public ClientWrapper checkout() throws Exception {
-
 			ClientWrapper ret = null;
 			poolLock.lock();
 			try {
-
 				if (availableClients.isEmpty() && currentPoolSize < maxPoolSize) {
 					ret = new ClientWrapper();
 					currentPoolSize++;
 					checkedOutClients.add(ret);
+					LOGGER.warn("add new rocketmq client. total=" + currentPoolSize);
 					return ret;
 				}
 				while (availableClients.isEmpty()) {
@@ -363,6 +366,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			try {
 				checkedOutClients.remove(client);
 				currentPoolSize--;
+				LOGGER.warn("remove rocketmq client. total=" + currentPoolSize);
 			} finally {
 				poolLock.unlock();
 			}
