@@ -196,7 +196,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		}
 		stateLock.lock();
 		try {
-//			dump(properties);
+			// dump(properties);
 			LOGGER.warn("properties.getProperty(hosts.h1)={}", properties.getProperty("hosts.h1"));
 			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
 			hostname = host.getHostName();
