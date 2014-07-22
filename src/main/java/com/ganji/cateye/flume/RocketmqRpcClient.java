@@ -49,6 +49,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
 				t.setName("Flume Thrift RPC thread - " + String.valueOf(threadCounter.incrementAndGet()));
+				LOGGER.warn("RocketmqRpcClient: sink add new thread. name=" + t.getName());
 				return t;
 			}
 		});
@@ -63,10 +64,8 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
 			client = connectionManager.checkout();
-
-			Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
-			LOGGER.warn("message topic={}", m.getTopic());
-			doAppend(client, m).get(requestTimeout, TimeUnit.MILLISECONDS);
+			
+			doAppend(client, event).get(requestTimeout, TimeUnit.MILLISECONDS);
 
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
@@ -109,12 +108,14 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
-			LOGGER.warn("appendBatch size={}", events.size());
+			LOGGER.warn("RocketmqRpcClient: appendBatch size={}", events.size());
 			client = connectionManager.checkout();
-			for (Event event : events) {
-				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
-				doAppend(client, m).get(requestTimeout, TimeUnit.MILLISECONDS);
-			}
+//			for (Event event : events) {
+//				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
+//				doAppend(client, m).get(requestTimeout, TimeUnit.MILLISECONDS);
+//			}
+			doAppendBatch(client, events);
+			
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
 			if (e instanceof ExecutionException) {
@@ -182,10 +183,9 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 	}
 
 	private void dump(Properties properties) {
-		System.out.println("dumpppppppppppppppppppppppppppppppp");
 		for (Object key : properties.keySet()) {
 			// System.out.println(properties.getProperty(key.toString()));
-			LOGGER.warn("{}={}", key.toString(), properties.getProperty(key.toString()));
+			LOGGER.warn("RocketmqRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}
 
@@ -197,12 +197,11 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		stateLock.lock();
 		try {
 			// dump(properties);
-			LOGGER.warn("properties.getProperty(hosts.h1)={}", properties.getProperty("hosts.h1"));
 			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
 			hostname = host.getHostName();
 			port = host.getPortNumber();
 
-			LOGGER.warn("===========hostname={} port={}", this.hostname, this.port);
+			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={}", this.hostname, this.port);
 			compressMsgBodyOverHowmuch = Integer.parseInt(properties.getProperty(
 					"compress-msg-body-over-how-much",
 					String.valueOf(4000)));
@@ -240,11 +239,11 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		}
 	}
 
-	private Future<Void> doAppend(final ClientWrapper client, final Message m) throws Exception {
-
+	private Future<Void> doAppend(final ClientWrapper client, final Event event) throws Exception {
 		return callTimeoutPool.submit(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
+				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
 				client.producer.send(m);
 				// 如果send有异常，则让它自然pop；否则就是成功了；这里不强制所有的状态就绪；原因详见rocketmq的发送代码注释
 				// SendResult status = client.producer.send(m);
@@ -258,13 +257,15 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 	}
 
 	// rocketmq producor api不支持批量， 所有这里是一个awful实现
-	private Future<Void> doAppendBatch(final ClientWrapper client, final List<Message> ms) throws Exception {
+	private Future<Void> doAppendBatch(final ClientWrapper client, final List<Event> events) throws Exception {
 
 		return callTimeoutPool.submit(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
-				for (Message m : ms)
+				for (Event event : events) {
+					Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
 					client.producer.send(m);
+				}
 				return null;
 			}
 		});
@@ -290,7 +291,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
 			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
 			producer.start();
-			LOGGER.warn("getCreateTopicKey={}", producer.getCreateTopicKey());
+			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={}", producer.getCreateTopicKey());
 			hashCode = producer.hashCode();
 		}
 
@@ -336,7 +337,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 					ret = new ClientWrapper();
 					currentPoolSize++;
 					checkedOutClients.add(ret);
-					LOGGER.warn("add new rocketmq client. total=" + currentPoolSize);
+					LOGGER.warn("RocketmqRpcClient add new rocketmq client. total=" + currentPoolSize);
 					return ret;
 				}
 				while (availableClients.isEmpty()) {
@@ -366,7 +367,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			try {
 				checkedOutClients.remove(client);
 				currentPoolSize--;
-				LOGGER.warn("remove rocketmq client. total=" + currentPoolSize);
+				LOGGER.warn("RocketmqRpcClient remove rocketmq client. total=" + currentPoolSize);
 			} finally {
 				poolLock.unlock();
 			}
