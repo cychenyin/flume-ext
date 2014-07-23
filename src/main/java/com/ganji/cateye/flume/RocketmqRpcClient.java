@@ -292,7 +292,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
 			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
 			producer.start();
-			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={}", producer.getCreateTopicKey());
+			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={}", producer.getCreateTopicKey(), producer.getInstanceName());
 			hashCode = producer.hashCode();
 		}
 
