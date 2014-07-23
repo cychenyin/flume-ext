@@ -23,7 +23,7 @@ public class Entry {
 			logger.warn("server starting");
 		}
 
-		int threadCount = args != null && args.length > 0 ? Integer.parseInt(args[0]) : 1;
+		int threadCount = args != null && args.length > 0 ? Integer.parseInt(args[0]) : 4;
 		int count = args != null && args.length > 1 ? Integer.parseInt(args[1]) : Integer.MAX_VALUE;
 
 		produce(threadCount, count);
@@ -56,11 +56,11 @@ public class Entry {
 		}
 	}
 	private static void produce(int count) {
-		DefaultMQProducer producer = new DefaultMQProducer("cateye" + (new Random()).nextInt());
+		DefaultMQProducer producer = new DefaultMQProducer("cateye" );
 		producer.setNamesrvAddr("192.168.129.213:9876");
 		producer.setCreateTopicKey("cateye");
-		//producer.setProducerGroup("cateye");
-		// producer.setInstanceName("cateye");
+		producer.setProducerGroup("cateye");
+		producer.setInstanceName("cateye" + (new Random()).nextInt());
 
 		try {
 			producer.start();
