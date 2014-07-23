@@ -1,7 +1,5 @@
 package com.ganji.cateye.flume;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 import org.slf4j.Logger;
@@ -22,39 +20,36 @@ public class Entry {
 		}
 
 		int count = args != null && args.length > 0 ? Integer.parseInt(args[0]) : Integer.MAX_VALUE;
-		sendlogBackground(count);
-		System.out.println("done.");
 
-//		System.out.println(Entry.class.getCanonicalName());
-		// a(10);
-//		System.out.println("done 2. ");
+		produce(count);
 	}
 
-	private static void sink() {
-
-	}
+	private static Stats stat = new Stats();
 
 	private static void produce(int count) {
 		DefaultMQProducer producer = new DefaultMQProducer("cateye");
 		producer.setNamesrvAddr("192.168.129.213:9876");
-		// producer.setProducerGroup("cateye");
-		// producer.setInstanceName("CateyeProducer");
+		producer.setCreateTopicKey("cateye");
+		producer.setProducerGroup("cateye");
+		// producer.setInstanceName("cateye");
+
 		try {
 			producer.start();
 		} catch (MQClientException e) {
 			e.printStackTrace();
 		}
-		StringBuilder sb = new StringBuilder();
-		for(int i=0; i<5000; i++){
-			sb.append("1");
-		};
-		String body = sb.toString();
+
 		try {
-			for (int i = 0; i < 1000; i++) {
-				Message m = new Message("cateye", "ms.web.app", body.getBytes());
+			for (int i = 1; i <= count; i++) {
+				Message m = new Message("cateye", "flume.bench", body());
 				producer.send(m);
-				Thread.sleep(10);
+				stat.increase();
+
+				if (i % 1000 == 0) {
+					System.out.println(stat.toString());
+				}
 			}
+
 		} catch (MQClientException e) {
 			e.printStackTrace();
 		} catch (RemotingException e) {
@@ -68,67 +63,21 @@ public class Entry {
 		}
 	}
 
-	// private static void sendlogForkjoin(int logCount) {
-	// // ForkJoinPool pool = new ForkJoinPool();
-	// }
+	private static byte[] body_;
 
-	private static void sendlogBackground(int logCount) {
-		if (logCount < 1000) {
-			sendlog(logCount);
-			return;
-		}
-		int threadCount = 10;
-		final int batchSize = logCount < Integer.MAX_VALUE ? logCount / threadCount : Integer.MAX_VALUE;
-		List<Thread> threads = new ArrayList<Thread>(threadCount);
-		for (int i = 0; i < threadCount; i++) {
-			Thread t = new Thread(new Runnable() {
-				@Override
-				public void run() {
-					sendlog(batchSize);
-				}
-			});
-			threads.add(t);
-			t.start();
-		}
-
-		for (int i = 0; i < threadCount; i++) {
-			try {
-				threads.get(i).join();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		
-	}
-
-	private static String body_;
-	
-	private static String body() {
-		if(body_ == null) {
-			int total = 102400;
+	private static byte[] body() {
+		if (body_ == null) {
+			int total = 5000; // 102400;
 			StringBuilder sb = new StringBuilder();
 			sb.append("size=");
 			sb.append(total);
 			Random rnd = new Random();
-			while(sb.length() < total) {
+			while (sb.length() < total) {
 				sb.append(rnd.nextInt());
 			}
-			body_ = sb.toString();
+			body_ = sb.toString().getBytes();
 		}
 		return body_;
-	}
-	private static void sendlog(int count) {
-		int rnd = new Random().nextInt();
-
-		for (int i = 1; i <= count; i++) {
-			if (i % 100 == 0) {
-				System.out.println("flume test log, rnd=" + rnd + " count=" + i);
-			}
-			logger.warn("flume test log, rnd={} count={} {}", rnd, i, body());
-			if(i == Integer.MAX_VALUE) {
-				i = 1;
-			}
-		}
 	}
 
 	public static void usage() {
