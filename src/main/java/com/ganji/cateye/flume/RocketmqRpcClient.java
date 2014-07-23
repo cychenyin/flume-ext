@@ -296,7 +296,6 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
 			producer.setInstanceName("cateye" + (new Random()).nextInt());
 			producer.start();
-			
 			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={}", producer.getCreateTopicKey(), producer.getInstanceName());
 			hashCode = producer.hashCode();
 		}
