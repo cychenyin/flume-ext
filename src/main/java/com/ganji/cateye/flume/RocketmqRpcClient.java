@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.ganji.cateye.utils.StatsDClientHelper;
 
 public class RocketmqRpcClient extends AbstractRpcClient {
 	private static final Logger LOGGER = LoggerFactory.getLogger(RocketmqRpcClient.class);
@@ -36,13 +37,13 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 	private final ExecutorService callTimeoutPool;
 	private final AtomicLong threadCounter;
 	private int connectionPoolSize;
-
+	StatsDClientHelper stats;
 	// private final Random random = new Random();
 
 	public RocketmqRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
-
+		stats = new StatsDClientHelper();
 		threadCounter = new AtomicLong(0);
 		// OK to use cached threadpool, because this is simply meant to timeout the calls - and is IO bound.
 		callTimeoutPool = Executors.newCachedThreadPool(new ThreadFactory() {
@@ -67,7 +68,8 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			client = connectionManager.checkout();
 			
 			doAppend(client, event).get(requestTimeout, TimeUnit.MILLISECONDS);
-
+			stats.incrementCounter("producer", 1);
+			
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
 			if (e instanceof ExecutionException) {
@@ -116,7 +118,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 //				doAppend(client, m).get(requestTimeout, TimeUnit.MILLISECONDS);
 //			}
 			doAppendBatch(client, events);
-			
+			stats.incrementCounter("producer", events.size());
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
 			if (e instanceof ExecutionException) {
@@ -287,11 +289,16 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		public ClientWrapper() throws Exception {
 			producer = new DefaultMQProducer("cateye");
 			producer.setCreateTopicKey("cateye");
-			producer.setProducerGroup("cateye" + (new Random()).nextInt());
+			producer.setProducerGroup("cateye");
 			producer.setNamesrvAddr("127.0.0.1:9876");
 			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
 			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
+			producer.setInstanceName("cateye" + (new Random()).nextInt());
 			producer.start();
+<<<<<<< HEAD
+=======
+			
+>>>>>>> 129a5c742a1c577dab1648f832faf4f3f7223b0c
 			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={}", producer.getCreateTopicKey(), producer.getInstanceName());
 			hashCode = producer.hashCode();
 		}
