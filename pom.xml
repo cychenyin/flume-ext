@@ -265,6 +265,7 @@
 					<archive>
 						<manifest>
 							<mainClass>${main_class}</mainClass>
+							<!-- <mainClass>com.ganji.cateye.flume.Entry</mainClass> -->
 						</manifest>
 					</archive>
 				</configuration>

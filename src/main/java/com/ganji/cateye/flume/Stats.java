@@ -55,7 +55,13 @@ public class Stats {
 		}
 		sb.append("speed=" );
 		sb.append(sum/60);
-		
+ 		sb.append("\t");
+
+		for(int i=0;i<60; i++) {
+			sb.append(this.minutes[i]);
+			sb.append(" ");
+		}
+
 		return sb.toString();
 	}
 	

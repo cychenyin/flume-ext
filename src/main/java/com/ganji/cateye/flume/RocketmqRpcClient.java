@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.Random;
 
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
@@ -286,7 +287,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 		public ClientWrapper() throws Exception {
 			producer = new DefaultMQProducer("cateye");
 			producer.setCreateTopicKey("cateye");
-			producer.setProducerGroup("cateye");
+			producer.setProducerGroup("cateye" + (new Random()).nextInt());
 			producer.setNamesrvAddr("127.0.0.1:9876");
 			// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
 			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
