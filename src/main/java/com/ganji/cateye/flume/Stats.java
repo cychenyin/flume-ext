@@ -1,5 +1,7 @@
 package com.ganji.cateye.flume;
 
+import java.util.Random;
+
 import org.joda.time.DateTime;
 
 public class Stats {
@@ -16,7 +18,7 @@ public class Stats {
 	public synchronized void increase(long i){
 		DateTime now = DateTime.now();
 		long diff = now.getMillis() - lastModifiy.getMillis();
-		if(diff > 3600000) { // 过小时
+		if(now.getHourOfDay() != lastModifiy.getHourOfDay()) { // 过小时
 			// 汇总分钟
 			int minute = lastModifiy.getMinuteOfHour();
 			for(int t = 0; t< 60; t++){
@@ -30,7 +32,7 @@ public class Stats {
 				minutes[t] = 0;
 			}
 			
-		} else if (diff > 60000){ // 过分钟
+		} else if (now.getMinuteOfHour() != lastModifiy.getMinuteOfHour()){ // 过分钟
 			// 汇总分钟
 			int minute = lastModifiy.getMinuteOfHour();
 			for(int t = 0; t< 60; t++){
@@ -40,13 +42,9 @@ public class Stats {
 		} 
 		
 		this.seconds[now.getSecondOfMinute()] += i;
-		
 		lastModifiy = now;
 	}
 	
-//	private long total() {
-//		
-//	}
 	public String toString(){
 		StringBuilder sb  = new StringBuilder();
 		long sum = 0;
@@ -61,7 +59,6 @@ public class Stats {
 			sb.append(this.minutes[i]);
 			sb.append(" ");
 		}
-
 		return sb.toString();
 	}
 	
@@ -69,8 +66,20 @@ public class Stats {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
+		Stats stat = new Stats();
+		Random rnd = new Random();
+		for(int i=1; i<1000000; i++){
+			stat.increase();
+			if (i % 1000 == 0) {
+				System.out.println(stat.toString() + " "  + i);
+			}
 
+			try {
+				Thread.sleep(rnd.nextInt(2));
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 }
