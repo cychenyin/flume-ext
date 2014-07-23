@@ -173,6 +173,7 @@ public class RocketmqRpcClient extends AbstractRpcClient {
 			if (!callTimeoutPool.awaitTermination(5, TimeUnit.SECONDS)) {
 				callTimeoutPool.shutdownNow();
 			}
+			stats.stop();
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
 				throw (Error) ex;
