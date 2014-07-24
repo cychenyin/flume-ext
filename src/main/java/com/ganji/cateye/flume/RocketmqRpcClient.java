@@ -182,8 +182,7 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			}
 			topic = properties.getProperty("topic", "cateye");
 			producerGroup = properties.getProperty("producerGroup", "cateye");
-
-			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={}", this.hostname, this.port);
+			
 			compressMsgBodyOverHowmuch = Integer.parseInt(properties.getProperty(
 					"compress-msg-body-over-how-much",
 					String.valueOf(4000)));
@@ -206,6 +205,7 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			producer.setCompressMsgBodyOverHowmuch(compressMsgBodyOverHowmuch);
 			producer.setInstanceName(producerGroup + "_" + (new Random()).nextInt());
 
+			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={} NameSrv={}", this.hostname, this.port, String.format("{}:{}", hostname, port));
 			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(), producer.getInstanceName(), producer.buildMQClientId());
 
 			producer.start();
