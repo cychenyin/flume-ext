@@ -263,6 +263,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 				
 				if (availableClients.isEmpty() && currentPoolSize < maxPoolSize) {
 					ret = initializeRpcClient(clientProps);
+					ret.start();
 					currentPoolSize++;
 					checkedOutClients.add(ret);
 					LOGGER.warn("RocketmqRpcClient add new rocketmq client. total={},maxPoolSize={}", currentPoolSize, maxPoolSize);
@@ -273,7 +274,9 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 				}
 				ret = availableClients.poll();
 				checkedOutClients.add(ret);
-			} finally {
+			
+			}
+			finally {
 				poolLock.unlock();
 			}
 			return ret;
