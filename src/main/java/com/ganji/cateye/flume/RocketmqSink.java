@@ -1,3 +1,6 @@
+/*
+*/
+
 package com.ganji.cateye.flume;
 
 import java.util.Properties;
@@ -24,18 +27,18 @@ import org.slf4j.LoggerFactory;
  * 	(both in second)
  * maxConnections = 5
  */
-public class RocketmqSink extends AbstractRpcSink {
+public class RocketmqSink extends AbstractMultiThreadRpcSink {
 	private static final Logger logger = LoggerFactory.getLogger(RocketmqSink.class);
 
 	@Override
-	protected RpcClient initializeRpcClient(Properties props) {
+	protected AbstractMultiThreadRpcClient initializeRpcClient(Properties props) {
 		props.setProperty(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE,
 				RocketmqRpcClient.class.getCanonicalName());
 		// Only one thread is enough, since only one sink thread processes transactions at any given time. 
 		// Each sink owns its own Rpc client.
 		// props.setProperty(RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE, String.valueOf(1));
 
-		return RpcClientFactory.getInstance(props);
+		return (AbstractMultiThreadRpcClient)RpcClientFactory.getInstance(props);
 	}
 
 }
