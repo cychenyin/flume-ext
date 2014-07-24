@@ -26,14 +26,13 @@ import com.ganji.cateye.utils.StatsDClientHelper;
 
 public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 	private static final Logger LOGGER = LoggerFactory.getLogger(RocketmqRpcClient.class);
-	// private int batchSize;
-	private long requestTimeout;
 	private final Lock stateLock;
 	private State connState;
 	private String hostname;
 	private int port;
 	private int compressMsgBodyOverHowmuch;
-
+	private String topic;
+	private String producerGroup;
 	private StatsDClientHelper stats;
 	// private final Random random = new Random();
 	public final DefaultMQProducer producer;
@@ -44,15 +43,6 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 		stats = new StatsDClientHelper();
 
 		producer = new DefaultMQProducer("cateye");
-		producer.setCreateTopicKey("cateye");
-		producer.setProducerGroup("cateye");
-		producer.setNamesrvAddr("127.0.0.1:9876");
-		// producer.setNamesrvAddr(String.format("{}:{}", RocketmqRpcClient.this.hostname, RocketmqRpcClient.this.port));
-		producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient.this.compressMsgBodyOverHowmuch);
-		producer.setInstanceName("cateye" + (new Random()).nextInt());
-
-		LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(),
-				producer.getInstanceName(), producer.buildMQClientId());
 	}
 
 	@Override
@@ -151,6 +141,7 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			connState = State.DEAD;
 			stats.stop();
 			producer.shutdown();
+			System.out.println("client close");
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
 				throw (Error) ex;
@@ -179,9 +170,17 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 		stateLock.lock();
 		try {
 			// dump(properties);
-			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
-			hostname = host.getHostName();
-			port = host.getPortNumber();
+			List<HostInfo> hosts = HostInfo.getHostInfoList(properties);
+			if (hosts.size() > 0) {
+				HostInfo host = hosts.get(0);
+				hostname = host.getHostName();
+				port = host.getPortNumber();
+			} else {
+				hostname = properties.getProperty("hostname", "127.0.0.1");
+				port = Integer.parseInt(properties.getProperty("port", "9876"));
+			}
+			topic = properties.getProperty("topic", "cateye");
+			producerGroup = properties.getProperty("producerGroup", "cateye");
 
 			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={}", this.hostname, this.port);
 			compressMsgBodyOverHowmuch = Integer.parseInt(properties.getProperty(
@@ -198,6 +197,18 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 				LOGGER.warn("Request timeout specified less than 1s. Using default value instead.");
 				requestTimeout = RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS;
 			}
+
+			producer.setCreateTopicKey(topic);
+			producer.setProducerGroup(producerGroup);
+			// producer.setNamesrvAddr("127.0.0.1:9876");
+			producer.setNamesrvAddr(String.format("{}:{}", hostname, port));
+			producer.setCompressMsgBodyOverHowmuch(compressMsgBodyOverHowmuch);
+			producer.setInstanceName(producerGroup + "_" + (new Random()).nextInt());
+
+			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(), producer.getInstanceName(), producer.buildMQClientId());
+
+			producer.start();
+
 			connState = State.READY;
 		} catch (Throwable ex) {
 			// Failed to configure, kill the client.
@@ -232,15 +243,5 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 
 	public int hashCode() {
 		return producer.buildMQClientId().hashCode();
-	}
-
-	@Override
-	public void start() throws EventDeliveryException {
-		try {
-			this.producer.start();
-		} catch (MQClientException e) {
-			LOGGER.warn("Fail to start RocketMQ producer client", e);
-			throw new EventDeliveryException("Fail to start RocketMQ producer client", e);
-		}
 	}
 }

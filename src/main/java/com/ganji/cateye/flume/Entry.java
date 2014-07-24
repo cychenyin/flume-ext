@@ -10,9 +10,11 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.ganji.commons.utils.PropertiesLoader;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 
 public class Entry {
@@ -27,9 +29,22 @@ public class Entry {
 		int count = args != null && args.length > 1 ? Integer.parseInt(args[1]) : Integer.MAX_VALUE;
 
 		produce(threadCount, count);
+		
 		System.out.println("done.");
 	}
 
+	private static void sink() {
+		RocketmqSink sink = new RocketmqSink();
+
+		Properties props = new Properties();
+		props.setProperty("host.h1", "192.168.129.213:9876");
+		props.setProperty("hostname", "192.168.129.213");
+		props.setProperty("port", "9876");
+
+		AbstractMultiThreadRpcClient c = sink.initializeRpcClient(props);
+		c.close();
+		sink.stop();
+}
 	private static Stats stat = new Stats();
 
 	private static void produce(int threadCount, int count) {

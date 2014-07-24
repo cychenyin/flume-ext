@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,22 +38,14 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements Configurable {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMultiThreadRpcSink.class);
 	private String hostname;
 	private Integer port;
-	// private RpcClient client;
 	private Properties clientProps;
 	private SinkCounter sinkCounter;
-	private int cxnResetInterval;
-	private final int DEFAULT_CXN_RESET_INTERVAL = 0;
-	private final ScheduledExecutorService cxnResetExecutor = Executors
-			.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-					.setNameFormat("Rpc Sink Reset Thread").build());
-	// by asdf
 	private final ExecutorService callTimeoutPool = Executors.newCachedThreadPool(new ThreadFactory() {
 		@Override
 		public Thread newThread(Runnable r) {
@@ -65,10 +56,9 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		}
 	});
 	private final AtomicLong threadCounter = new AtomicLong(0);
-	private ConnectionPoolManager connectionManager;
-	private int connectionPoolSize;
-	// by asdf
-	
+	private int connectionPoolSize = 1;
+	private ConnectionPoolManager connectionManager = new ConnectionPoolManager(connectionPoolSize);
+
 	@Override
 	public void configure(Context context) {
 		clientProps = new Properties();
@@ -90,13 +80,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		if (sinkCounter == null) {
 			sinkCounter = new SinkCounter(getName());
 		}
-		cxnResetInterval = context.getInteger("reset-connection-interval",
-				DEFAULT_CXN_RESET_INTERVAL);
-		if (cxnResetInterval == DEFAULT_CXN_RESET_INTERVAL) {
-			LOGGER.info("Connection reset is set to " + String.valueOf
-					(DEFAULT_CXN_RESET_INTERVAL) + ". Will not reset connection to next hop");
-		}
-		
+	
 		connectionPoolSize = Integer.parseInt(clientProps.getProperty(
 				RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE,
 				String.valueOf(RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE)));
@@ -104,7 +88,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			LOGGER.warn("Connection Pool Size specified is less than 1. Using default value instead.");
 			connectionPoolSize = RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE;
 		}
-		connectionManager = new ConnectionPoolManager(connectionPoolSize);
+		this.connectionManager.setPoolSize(connectionPoolSize);
 	}
 
 	/**
@@ -116,7 +100,6 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	 */
 	// protected abstract RpcClient initializeRpcClient(Properties props);
 	protected abstract AbstractMultiThreadRpcClient initializeRpcClient(Properties props);
-
 
 	/**
 	 * The start() of RpcSink is more of an optimization that allows connection to be created before the process() loop is started. In case
@@ -135,18 +118,24 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	@Override
 	public void stop() {
 		LOGGER.info("MultiThread Rpc sink {} stopping...", getName());
-		
-		this.connectionManager.closeAll();
-		
-		cxnResetExecutor.shutdown();
+
+		if (connectionManager != null)
+			connectionManager.closeAll();
+			System.out.println(connectionManager.currentPoolSize);
 		try {
-			if (cxnResetExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-				cxnResetExecutor.shutdownNow();
+			callTimeoutPool.shutdown();
+			if (!callTimeoutPool.awaitTermination(2, TimeUnit.SECONDS)) {
+				callTimeoutPool.shutdownNow();
+				System.out.println("shutdownNow");
 			}
+			System.out.println("shutdown end");
 		} catch (Exception ex) {
 			LOGGER.error("MultiThread Rpc sink Interrupted while waiting for connection reset executor to shut down");
 		}
-		sinkCounter.stop();
+		
+		if (sinkCounter != null)
+			sinkCounter.stop();
+
 		super.stop();
 
 		LOGGER.info("MultiThread Rpc sink {} stopped. Metrics: {}", getName(), sinkCounter);
@@ -154,13 +143,13 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 
 	@Override
 	public String toString() {
-		return "RpcSink " + getName() + " { host: " + hostname + ", port: " +
-				port + " }";
+		return "RpcSink " + getName() + " { host: " + hostname + ", port: " + port + " }";
 	}
-
-	// the java api now not support future listener register, so, between exactly result and multi thread model, my choice is multi thread. 
+	
+	// the java api now not support future listener register, so, between exactly result and multi thread model, my choice is multi thread.
 	// but in partial do process can return the result of previous tranasaction; and which one? who care!
-	private Status unreliableStatus;	
+	private volatile Status unreliableStatus;
+
 	private Status doProcess() throws EventDeliveryException {
 		Status status = Status.READY;
 		Channel channel = getChannel();
@@ -170,7 +159,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		try {
 			client = connectionManager.checkout();
 			transaction.begin();
-			
+
 			List<Event> batch = Lists.newLinkedList();
 
 			for (int i = 0; i < client.getBatchSize(); i++) {
@@ -211,39 +200,38 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 						" channel " + channel.getName() + ". Exception follows.", t);
 				status = Status.BACKOFF;
 			} else {
-				//destroyConnection();
-				if(client != null)
+				// destroyConnection();
+				if (client != null)
 					this.connectionManager.destroy(client);
 				throw new EventDeliveryException("Failed to send events", t);
 			}
 		} finally {
 			transaction.close();
-			if(client != null) {
+			if (client != null) {
 				this.connectionManager.checkIn(client);
 			}
 		}
 		unreliableStatus = status;
 		return status;
 	}
-	
+
 	@Override
 	public Status process() throws EventDeliveryException {
-		// By the way, future api in java seems quite stupid. 
+		// By the way, future api in java seems quite stupid.
 		callTimeoutPool.submit(new Callable<Status>() {
 			@Override
 			public Status call() throws Exception {
-				return  doProcess();
+				return doProcess();
 			}
 		});
 		return unreliableStatus;
 	}
 
-
 	private class ConnectionPoolManager {
 		private final Queue<AbstractMultiThreadRpcClient> availableClients;
 		private final Set<AbstractMultiThreadRpcClient> checkedOutClients;
-		private final int maxPoolSize;
 		private int currentPoolSize;
+		private int maxPoolSize;
 		private final Lock poolLock;
 		private final Condition availableClientsCondition;
 
@@ -260,10 +248,9 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			AbstractMultiThreadRpcClient ret = null;
 			poolLock.lock();
 			try {
-				
+
 				if (availableClients.isEmpty() && currentPoolSize < maxPoolSize) {
 					ret = initializeRpcClient(clientProps);
-					ret.start();
 					currentPoolSize++;
 					checkedOutClients.add(ret);
 					LOGGER.warn("RocketmqRpcClient add new rocketmq client. total={},maxPoolSize={}", currentPoolSize, maxPoolSize);
@@ -274,9 +261,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 				}
 				ret = availableClients.poll();
 				checkedOutClients.add(ret);
-			
-			}
-			finally {
+
+			} finally {
 				poolLock.unlock();
 			}
 			return ret;
@@ -304,7 +290,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			}
 			client.close();
 		}
-		
+
 		public void closeAll() {
 			poolLock.lock();
 			try {
@@ -322,6 +308,12 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			} finally {
 				poolLock.unlock();
 			}
+		}
+
+		public void setPoolSize(int size) {
+			if (size < 1)
+				size = 1;
+			this.maxPoolSize = currentPoolSize > size ? currentPoolSize : size;
 		}
 	}
 

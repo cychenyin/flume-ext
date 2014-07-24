@@ -1,5 +1,5 @@
 /*
-*/
+ */
 
 package com.ganji.cateye.flume;
 
@@ -32,13 +32,21 @@ public class RocketmqSink extends AbstractMultiThreadRpcSink {
 
 	@Override
 	protected AbstractMultiThreadRpcClient initializeRpcClient(Properties props) {
-		props.setProperty(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE,
-				RocketmqRpcClient.class.getCanonicalName());
-		// Only one thread is enough, since only one sink thread processes transactions at any given time. 
-		// Each sink owns its own Rpc client.
-		// props.setProperty(RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE, String.valueOf(1));
-
-		return (AbstractMultiThreadRpcClient)RpcClientFactory.getInstance(props);
+		if (!props.containsKey(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE)) {
+			props.setProperty(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE,
+					RocketmqRpcClient.class.getCanonicalName());
+		}
+		// set or override setting here.
+		
+		AbstractMultiThreadRpcClient ret = null;
+		try {
+		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
+		
+		}catch(Throwable e){
+			System.out.println(e.getMessage());
+		}
+		
+		
+		return ret;
 	}
-
 }
