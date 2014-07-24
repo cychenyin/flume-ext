@@ -223,7 +223,8 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 		if (o == null || !(o instanceof RocketmqRpcClient)) {
 			return false;
 		}
-		if (this.producer.buildMQClientId().equals(((RocketmqRpcClient) o).producer.buildMQClientId())) {
+		RocketmqRpcClient r = (RocketmqRpcClient) o;
+		if (r.producer != null && this.producer.buildMQClientId().equals(r.producer.buildMQClientId())) {
 			return true;
 		}
 		return false;
