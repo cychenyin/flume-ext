@@ -21,5 +21,7 @@ public abstract class AbstractMultiThreadRpcClient extends AbstractRpcClient {
 	
 	@Override
 	public abstract int hashCode();
+
+	public abstract String getName();
 	
 }

@@ -243,17 +243,18 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			availableClientsCondition = poolLock.newCondition();
 			currentPoolSize = 0;
 		}
-
+		public int currentPoolSize(){
+			return  availableClients.size() + checkedOutClients.size();
+		}
 		public AbstractMultiThreadRpcClient checkout() throws Exception {
 			AbstractMultiThreadRpcClient ret = null;
 			poolLock.lock();
 			try {
-
-				if (availableClients.isEmpty() && currentPoolSize < maxPoolSize) {
+				if (availableClients.isEmpty() && currentPoolSize() < maxPoolSize) {
 					ret = initializeRpcClient(clientProps);
-					currentPoolSize++;
+					// currentPoolSize++;
 					checkedOutClients.add(ret);
-					LOGGER.warn("RocketmqRpcClient add new rocketmq client. currentPoolSize={},maxPoolSize={}", currentPoolSize, maxPoolSize);
+					LOGGER.warn("RocketmqRpcClient add new rocketmq client. ={},maxPoolSize={}", currentPoolSize, maxPoolSize);
 					return ret;
 				}
 				while (availableClients.isEmpty()) {
@@ -282,9 +283,9 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		public void destroy(AbstractMultiThreadRpcClient client) {
 			poolLock.lock();
 			try {
+				LOGGER.warn("RocketmqRpcClient remove rocketmq client id={}. currentPoolSize={}", client.getName(), currentPoolSize());
 				checkedOutClients.remove(client);
-				currentPoolSize--;
-				LOGGER.warn("RocketmqRpcClient remove rocketmq client. total=" + currentPoolSize);
+				// currentPoolSize--;
 			} finally {
 				poolLock.unlock();
 			}
@@ -296,14 +297,14 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			try {
 				for (AbstractMultiThreadRpcClient c : availableClients) {
 					c.close();
-					currentPoolSize--;
+					// currentPoolSize--;
 				}
 				/*
 				 * Be cruel and close even the checked out clients. The threads writing using these will now get an exception.
 				 */
 				for (AbstractMultiThreadRpcClient c : checkedOutClients) {
 					c.close();
-					currentPoolSize--;
+					// currentPoolSize--;
 				}
 			} finally {
 				poolLock.unlock();

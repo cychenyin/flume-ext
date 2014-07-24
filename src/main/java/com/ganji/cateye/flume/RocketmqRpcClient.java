@@ -245,4 +245,9 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 	public int hashCode() {
 		return producer.buildMQClientId().hashCode();
 	}
+
+	@Override
+	public String getName() {
+		return this.producer.buildMQClientId();
+	}
 }
