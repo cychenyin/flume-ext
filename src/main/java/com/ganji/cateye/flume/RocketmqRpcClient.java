@@ -101,6 +101,7 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			stats.incrementCounter("producer", events.size());
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
+			LOGGER.warn("RocketmqRpcClient fail to send message", e);
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();
 				// if (cause instanceof EventDeliveryException) {
