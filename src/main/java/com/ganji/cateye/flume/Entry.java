@@ -25,11 +25,14 @@ public class Entry {
 			logger.warn("server starting");
 		}
 
+//		String hostname = "local";
+//		int port = 1234;
+//		String h = String.format("%s:%d", hostname, port);
+//		System.out.println(h);
+//		return;
 		int threadCount = args != null && args.length > 0 ? Integer.parseInt(args[0]) : 4;
 		int count = args != null && args.length > 1 ? Integer.parseInt(args[1]) : Integer.MAX_VALUE;
-
 		produce(threadCount, count);
-		
 		System.out.println("done.");
 	}
 

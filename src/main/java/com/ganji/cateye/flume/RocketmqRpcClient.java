@@ -201,11 +201,11 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			producer.setCreateTopicKey(topic);
 			producer.setProducerGroup(producerGroup);
 			// producer.setNamesrvAddr("127.0.0.1:9876");
-			producer.setNamesrvAddr(String.format("{}:{}", hostname, port));
+			producer.setNamesrvAddr(String.format("%s:%d", hostname, port));
 			producer.setCompressMsgBodyOverHowmuch(compressMsgBodyOverHowmuch);
 			producer.setInstanceName(producerGroup + "_" + (new Random()).nextInt());
 
-			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={} NameSrv={}", this.hostname, this.port, String.format("{}:{}", hostname, port));
+			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={} /={}", this.hostname, this.port, String.format("{}:{}", hostname, port));
 			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(), producer.getInstanceName(), producer.buildMQClientId());
 
 			producer.start();
