@@ -212,6 +212,7 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 
 			connState = State.READY;
 		} catch (Throwable ex) {
+			LOGGER.warn("RocketmqRpcClient fail to start producer");
 			// Failed to configure, kill the client.
 			connState = State.DEAD;
 			if (ex instanceof Error) {
