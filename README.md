@@ -1,4 +1,4 @@
-# flume-test #
+# flume-ext #
 
 imple some flume plugins to support rocketmq sink , kestrel sink and wildcast channels  selector etc.
 
