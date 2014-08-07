@@ -46,15 +46,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	private Integer port;
 	private Properties clientProps;
 	private SinkCounter sinkCounter;
-	private final ExecutorService callTimeoutPool = Executors.newCachedThreadPool(new ThreadFactory() {
-		@Override
-		public Thread newThread(Runnable r) {
-			Thread t = new Thread(r);
-			t.setName("AbstractMultiThreadRpcSink thread - " + String.valueOf(threadCounter.incrementAndGet()));
-			LOGGER.warn("AbstractMultiThreadRpcSink: add new thread. name=" + t.getName());
-			return t;
-		}
-	});
+	private ExecutorService callTimeoutPool;
+	
 	private final AtomicLong threadCounter = new AtomicLong(0);
 	private int connectionPoolSize = 1;
 	private ConnectionPoolManager connectionManager = new ConnectionPoolManager(connectionPoolSize);
@@ -110,6 +103,15 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	@Override
 	public void start() {
 		LOGGER.info("MultiThread Rpc Starting {}...", this);
+		this.callTimeoutPool = Executors.newFixedThreadPool(4, new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setName("AbstractMultiThreadRpcSink thread - " + String.valueOf(threadCounter.incrementAndGet()));
+				LOGGER.warn("AbstractMultiThreadRpcSink: add new thread. name=" + t.getName());
+				return t;
+			}
+		});
 		sinkCounter.start();
 		super.start();
 		LOGGER.info("MultiThread Rpc sink {} started.", getName());
