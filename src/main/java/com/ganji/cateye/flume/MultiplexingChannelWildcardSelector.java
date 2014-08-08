@@ -40,7 +40,7 @@ public class MultiplexingChannelWildcardSelector extends AbstractChannelSelector
 		if (ret == null) {
 			for (String wildcard : wildcards) {
 				if (headerValue.startsWith(wildcard)) {
-					ret = channels.get(headerValue + "*");
+					ret = channels.get(wildcard + "*");
 					break;
 				}
 			}
@@ -126,7 +126,7 @@ public class MultiplexingChannelWildcardSelector extends AbstractChannelSelector
 				throw new FlumeException("Selector channel configured twice");
 			}
 			if (hdr.endsWith("*")) {
-				wildcardKeyOfMapping.add(hdr.substring(0, hdr.length() - 1));
+				wildcardKeyOfOptional.add(hdr.substring(0, hdr.length() - 1));
 			}
 		}
 	}
