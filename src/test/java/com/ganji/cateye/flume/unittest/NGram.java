@@ -1,4 +1,4 @@
-package com.ganji.cateye.sight.unittest;
+package com.ganji.cateye.flume.unittest;
 
 import static org.junit.Assert.*;
 

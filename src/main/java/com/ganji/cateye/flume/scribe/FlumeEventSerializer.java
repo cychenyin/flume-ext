@@ -22,6 +22,8 @@ import org.apache.flume.Event;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.conf.ConfigurableComponent;
 
+import scribe.thrift.LogEntry;
+
 public interface FlumeEventSerializer extends Configurable, ConfigurableComponent {
     public LogEntry serialize(Event event);
     public void close();

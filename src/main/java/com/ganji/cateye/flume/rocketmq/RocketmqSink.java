@@ -1,7 +1,7 @@
 /*
  */
 
-package com.ganji.cateye.flume;
+package com.ganji.cateye.flume.rocketmq;
 
 import java.util.Properties;
 
@@ -13,8 +13,11 @@ import org.apache.flume.sink.NullSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*// TODO 修改下参数注释
- * Kestrel sink @see KestrelRpcClient
+import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
+import com.ganji.cateye.flume.AbstractMultiThreadRpcSink;
+
+/*
+ * RocketMQ sink @see RocketmqRpcClient
  * configuration item supported:
  * hosts = h1 h2
  * hosts.h1 = 192.168.1.2:8080
@@ -27,14 +30,14 @@ import org.slf4j.LoggerFactory;
  * 	(both in second)
  * maxConnections = 5
  */
-public class KestrelSink extends AbstractMultiThreadRpcSink {
-	private static final Logger logger = LoggerFactory.getLogger(KestrelSink.class);
-
+public class RocketmqSink extends AbstractMultiThreadRpcSink {
+	private static final Logger logger = LoggerFactory.getLogger(RocketmqSink.class);
+	
 	@Override
 	protected AbstractMultiThreadRpcClient initializeRpcClient(Properties props) {
 		if (!props.containsKey(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE)) {
 			props.setProperty(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE,
-					KestrelRpcClient.class.getCanonicalName());
+					RocketmqRpcClient.class.getCanonicalName());
 		}
 		// set or override setting here.
 		

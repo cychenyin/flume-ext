@@ -21,11 +21,14 @@ package com.ganji.cateye.flume.scribe;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
+
+import scribe.thrift.LogEntry;
+
 import java.nio.ByteBuffer;
 
 public class EventToLogEntrySerializer implements FlumeEventSerializer {
     private String scribeCategoryHeaderKey;
-
+    
     @Override
     public LogEntry serialize(Event event) {
         LogEntry entry = new LogEntry();

@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume;
+package com.ganji.cateye.flume.rocketmq;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -22,10 +22,11 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.utils.StatsDClientHelper;
 
-public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
-	private static final Logger LOGGER = LoggerFactory.getLogger(KestrelRpcClient.class);
+public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
+	private static final Logger LOGGER = LoggerFactory.getLogger(RocketmqRpcClient.class);
 	private final Lock stateLock;
 	private State connState;
 	private String hostname;
@@ -37,7 +38,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	// private final Random random = new Random();
 	public final DefaultMQProducer producer;
 
-	public KestrelRpcClient() {
+	public RocketmqRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
 		stats = new StatsDClientHelper();
@@ -233,10 +234,10 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	}
 
 	public boolean equals(Object o) {
-		if (o == null || !(o instanceof KestrelRpcClient)) {
+		if (o == null || !(o instanceof RocketmqRpcClient)) {
 			return false;
 		}
-		KestrelRpcClient r = (KestrelRpcClient) o;
+		RocketmqRpcClient r = (RocketmqRpcClient) o;
 		if (r.producer != null && this.producer.buildMQClientId().equals(r.producer.buildMQClientId())) {
 			return true;
 		}

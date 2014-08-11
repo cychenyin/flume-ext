@@ -35,11 +35,11 @@ public class ScribeSinkConfigurationConstants {
     /**
      * Scribe host to send to.
      */
-    public static final String CONFIG_SCRIBE_HOST = "scribe.host";
+    public static final String CONFIG_SCRIBE_HOST = "hostname";
     /**
      * Scribe port to connect to.
      */
-    public static final String CONFIG_SCRIBE_PORT = "scribe.port";
+    public static final String CONFIG_SCRIBE_PORT = "port";
     /**
      * Scribe port to connect to.
      */
@@ -51,7 +51,7 @@ public class ScribeSinkConfigurationConstants {
     /**
      * Flume Header Value that maps to a Scribe Category, used for tests.
      */
-    static final String CONFIG_SCRIBE_CATEGORY = "scribe.category";
+    public static final String CONFIG_SCRIBE_CATEGORY = "category";
 
     private ScribeSinkConfigurationConstants() {
     }

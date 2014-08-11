@@ -14,6 +14,10 @@ import org.apache.flume.channel.AbstractChannelSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 实现支持*通配符后缀的Selector，用于Source选择Channels， *只允许放在最后
+ * @author asdf
+ */
 public class MultiplexingChannelWildcardSelector extends AbstractChannelSelector {
 
 	public static final String CONFIG_MULTIPLEX_HEADER_NAME = "header";

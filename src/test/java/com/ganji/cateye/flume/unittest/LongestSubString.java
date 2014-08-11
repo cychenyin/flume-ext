@@ -1,4 +1,4 @@
-package com.ganji.cateye.sight.unittest;
+package com.ganji.cateye.flume.unittest;
 
 import java.util.Arrays;
 import java.util.Collections;

@@ -1,7 +1,11 @@
 package com.ganji.cateye.flume;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 import java.util.Random;
 
+import org.apache.flume.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,12 +14,9 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.ganji.commons.utils.PropertiesLoader;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-
+import com.ganji.cateye.flume.rocketmq.RocketmqSink;
+import com.ganji.cateye.flume.scribe.EventToLogEntrySerializer;
+import com.ganji.cateye.flume.scribe.ScribeSinkConfigurationConstants;
 
 public class Entry {
 	private static final Logger logger = LoggerFactory.getLogger(Entry.class.getName());
@@ -24,18 +25,19 @@ public class Entry {
 		if (logger.isWarnEnabled()) {
 			logger.warn("server starting");
 		}
-		
-//		String hostname = "local";
-//		int port = 1234;
-//		String h = String.format("%s:%d", hostname, port);
-//		System.out.println(h);
-//		return;
-//		int threadCount = args != null && args.length > 0 ? Integer.parseInt(args[0]) : 4;
-//		int count = args != null && args.length > 1 ? Integer.parseInt(args[1]) : Integer.MAX_VALUE;
-//		produce(threadCount, count);
-//		System.out.println("done.");
+
+		// String hostname = "local";
+		// int port = 1234;
+		// String h = String.format("%s:%d", hostname, port);
+		// System.out.println(h);
+		// return;
+		// int threadCount = args != null && args.length > 0 ? Integer.parseInt(args[0]) : 4;
+		// int count = args != null && args.length > 1 ? Integer.parseInt(args[1]) : Integer.MAX_VALUE;
+		// produce(threadCount, count);
+		// System.out.println("done.");
 	}
 
+	@SuppressWarnings("unused")
 	private static void sink() {
 		RocketmqSink sink = new RocketmqSink();
 
@@ -43,13 +45,30 @@ public class Entry {
 		props.setProperty("host.h1", "192.168.129.213:9876");
 		props.setProperty("hostname", "192.168.129.213");
 		props.setProperty("port", "9876");
-
-		AbstractMultiThreadRpcClient c = sink.initializeRpcClient(props);
-		c.close();
+		// AbstractMultiThreadRpcClient c = sink.initializeRpcClient(props);
+		// c.close();
+		sink.configure(createContext());
 		sink.stop();
-}
+		
+	}
+
+	private static Context createContext() {
+		Context ctx = new Context();
+        ctx.put(ScribeSinkConfigurationConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
+        ctx.put(ScribeSinkConfigurationConstants.CONFIG_SCRIBE_HOST, "127.0.0.1");
+        ctx.put(ScribeSinkConfigurationConstants.CONFIG_SCRIBE_PORT, "1463");
+        ctx.put(ScribeSinkConfigurationConstants.CONFIG_SCRIBE_CATEGORY_HEADER, ScribeSinkConfigurationConstants.CONFIG_SCRIBE_CATEGORY);
+//        sink.configure(ctx);
+//        PseudoTxnMemoryChannel c = new PseudoTxnMemoryChannel();
+//        c.configure(ctx);
+//        c.start();
+//        sink.setChannel(c);
+//        sink.start();
+        return ctx;
+	}
 	private static Stats stat = new Stats();
 
+	@SuppressWarnings("unused")
 	private static void produce(int threadCount, int count) {
 		threadCount = threadCount < 1 ? 1 : threadCount;
 		final int batchSize = count < Integer.MAX_VALUE ? count / threadCount : Integer.MAX_VALUE;
@@ -63,7 +82,10 @@ public class Entry {
 			});
 			threads.add(t);
 			t.start();
-			try {Thread.sleep(500); } catch(InterruptedException e) {}
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+			}
 		}
 		for (int i = 0; i < threadCount; i++) {
 			try {
@@ -73,8 +95,9 @@ public class Entry {
 			}
 		}
 	}
+
 	private static void produce(int count) {
-		DefaultMQProducer producer = new DefaultMQProducer("cateye" );
+		DefaultMQProducer producer = new DefaultMQProducer("cateye");
 		producer.setNamesrvAddr("192.168.129.213:9876");
 		producer.setCreateTopicKey("cateye");
 		producer.setProducerGroup("cateye");

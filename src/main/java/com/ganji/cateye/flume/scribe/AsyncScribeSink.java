@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import scribe.thrift.*;
 
 /**
  * Asynchronous Sink that forwards messages to a scribe listener. <p>
@@ -53,7 +54,7 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
     private long batchSize = 1;
     private SinkCounter sinkCounter;
     private FlumeEventSerializer serializer;
-    private Scribe.AsyncClient client;
+    private scribe.AsyncClient client;
     private TAsyncClientManager clientManager;
     private TNonblockingTransport transport;
     private long timeout;
@@ -95,7 +96,7 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
     public synchronized void start() {
         super.start();
         sinkCounter.start();
-        client = new Scribe.AsyncClient(new TBinaryProtocol.Factory(), clientManager, transport);
+        client = new scribe.AsyncClient(new TBinaryProtocol.Factory(), clientManager, transport);
     }
 
     @Override
@@ -115,7 +116,7 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
         AtomicInteger callbacksExpected = new AtomicInteger(0);
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        final AsyncCallBack<Scribe.AsyncClient.Log_call> cb = new AsyncCallBack(lock, condition, callbacksReceived, txnFail);
+        final AsyncCallBack<scribe.AsyncClient.Log_call> cb = new AsyncCallBack(lock, condition, callbacksReceived, txnFail);
         Status status = Status.READY;
         Channel channel = getChannel();
         List<LogEntry> eventList = new ArrayList<LogEntry>();

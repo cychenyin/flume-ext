@@ -1,5 +1,6 @@
-package com.ganji.cateye.flume;
+package com.ganji.cateye.flume.kestrel;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -8,6 +9,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Random;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.FlumeException;
@@ -17,32 +20,53 @@ import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import scribe.thrift.LogEntry;
+
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.utils.StatsDClientHelper;
 
-public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
-	private static final Logger LOGGER = LoggerFactory.getLogger(RocketmqRpcClient.class);
+/**
+ * KestrelRpcClient 保证事务状态
+ * @author asdf
+ *
+ */
+public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
+	private static final Logger LOGGER = LoggerFactory.getLogger(KestrelRpcClient.class);
 	private final Lock stateLock;
 	private State connState;
 	private String hostname;
 	private int port;
-	private int compressMsgBodyOverHowmuch;
-	private String topic;
-	private String producerGroup;
+	private String name = "";
+	private String categoryHeaderKey = null;
+	private String forceCategory = null;
+	@SuppressWarnings("unused")
+	private boolean compress = false;
+	private String serializerId = "scribe";
+	@SuppressWarnings("unused")
+	private final int RETRY_INTERVAL = 1*1000;
+	@SuppressWarnings("unused")
+	private KestrelSerializer serializer = null;
+	
+	// private List<ByteBuffer> pendingItems = new LinkedList<ByteBuffer>();
+
+	
+//	private int compressMsgBodyOverHowmuch;
+//	private String topic;
+//	private String producerGroup;
+//	public final DefaultMQProducer producer;
 	private StatsDClientHelper stats;
 	// private final Random random = new Random();
-	public final DefaultMQProducer producer;
+	private KestrelThriftClient client;
 
-	public RocketmqRpcClient() {
+	public KestrelRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
-		stats = new StatsDClientHelper();
-
-		producer = new DefaultMQProducer("cateye");
+		stats = new StatsDClientHelper();		
 	}
 
 	@Override
@@ -51,14 +75,14 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
-			Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
-			producer.send(m);
-			// 如果send有异常，则让它自然pop；否则就是成功了；这里不强制所有的状态就绪；原因详见rocketmq的发送代码注释
-			// SendResult status = client.producer.send(m);
-			// if (status.getSendStatus() != SendStatus.SEND_OK) {
-			// throw new EventDeliveryException("Failed to deliver events. Server " +
-			// "returned status : " + status.getSendStatus().name());
-			// }
+			//Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
+			// producer.send(m);			
+			//ByteBuffer buf = serializer.encodeToByteBuffer(msg, false);
+			 
+			List<ByteBuffer> items = new ArrayList<ByteBuffer>();
+			items.add(serializer.encodeToByteBuffer(serializer.serialize(event), compress));
+			client.put(forceCategory, items, 0);
+			
 			stats.incrementCounter("producer", 1);
 
 		} catch (Throwable e) {
@@ -94,10 +118,16 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
 			LOGGER.warn("RocketmqRpcClient: appendBatch size={}", events.size());
+//			for (Event event : events) {
+//				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
+//				producer.send(m);
+//			}
+			List<ByteBuffer> items = new ArrayList<ByteBuffer>();
 			for (Event event : events) {
-				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
-				producer.send(m);
+				items.add(serializer.encodeToByteBuffer(serializer.serialize(event), compress));
 			}
+			client.put(forceCategory, items, 0);
+			
 			stats.incrementCounter("producer", events.size());
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
@@ -141,7 +171,9 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			stateLock.lock();
 			connState = State.DEAD;
 			stats.stop();
-			producer.shutdown();
+			// producer.shutdown();
+			client.close();
+			
 			System.out.println("client close");
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
@@ -180,13 +212,31 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 				hostname = properties.getProperty("hostname", "127.0.0.1");
 				port = Integer.parseInt(properties.getProperty("port", "9876"));
 			}
-			topic = properties.getProperty("topic", "cateye");
-			producerGroup = properties.getProperty("producerGroup", "cateye");
-			
-			compressMsgBodyOverHowmuch = Integer.parseInt(properties.getProperty(
-					"compress-msg-body-over-how-much",
-					String.valueOf(4000)));
 
+			forceCategory = properties.getProperty("forceCategory", "");
+			if(StringUtils.isEmpty(forceCategory))
+				throw new FlumeException("forceCategory of KestrelRpcClient not configed");
+			
+			compress =  Boolean.parseBoolean(properties.getProperty("compress", "False"));
+			
+			
+			serializerId =  properties.getProperty("serializerId", "scribe");
+			if( serializerId.equalsIgnoreCase("scribe")) {
+				serializer = new ScribeSerializer();
+			}
+			else if( serializerId.equalsIgnoreCase("plain-message") ) {
+				serializer = new PlainMessageSerializer();
+			}
+			else 
+				throw new RuntimeException("invalid serializer specified");
+			categoryHeaderKey = properties.getProperty(KestrelSinkConstants.CONFIG_CATEGORY_HEADER
+					, KestrelSinkConstants.CONFIG_CATEGORY_HEADER_DEFAULT);
+			
+			Context context = new Context();
+			context.put("serializerId", serializerId);
+			context.put(KestrelSinkConstants.CONFIG_CATEGORY_HEADER, categoryHeaderKey);
+			serializer.configure(context);
+			
 			batchSize = Integer.parseInt(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_BATCH_SIZE,
 					/* RpcClientConfigurationConstants.DEFAULT_BATCH_SIZE.toString() */"50"));
@@ -198,18 +248,9 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 				requestTimeout = RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS;
 			}
 
-			producer.setCreateTopicKey(topic);
-			producer.setProducerGroup(producerGroup);
-			// producer.setNamesrvAddr("127.0.0.1:9876");
-			producer.setNamesrvAddr(String.format("%s:%d", hostname, port));
-			producer.setCompressMsgBodyOverHowmuch(compressMsgBodyOverHowmuch);
-			producer.setInstanceName(producerGroup + "_" + (new Random()).nextInt());
-
-			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={} /={}", this.hostname, this.port, String.format("{}:{}", hostname, port));
-			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(), producer.getInstanceName(), producer.buildMQClientId());
-
-			producer.start();
-
+			client = new KestrelThriftClient(hostname, port);
+			name = String.format("%d@%s:%d", new Random().nextInt(), hostname, port);
+			
 			connState = State.READY;
 		} catch (Throwable ex) {
 			LOGGER.warn("RocketmqRpcClient fail to start producer");
@@ -233,22 +274,22 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 	}
 
 	public boolean equals(Object o) {
-		if (o == null || !(o instanceof RocketmqRpcClient)) {
+		if (o == null || !(o instanceof KestrelRpcClient)) {
 			return false;
 		}
-		RocketmqRpcClient r = (RocketmqRpcClient) o;
-		if (r.producer != null && this.producer.buildMQClientId().equals(r.producer.buildMQClientId())) {
+		KestrelRpcClient r = (KestrelRpcClient) o;
+		if (r.client != null && r.client.equals(this.client)) {
 			return true;
 		}
 		return false;
 	}
 
 	public int hashCode() {
-		return producer.buildMQClientId().hashCode();
+		return client == null ? 0 : client.hashCode();
 	}
 
 	@Override
 	public String getName() {
-		return this.producer.buildMQClientId();
+		return name;
 	}
 }

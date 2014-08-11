@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import scribe.thrift.*;
+
 
 /**
  * Synchronous Sink that forwards messages to a scribe listener. <p>
@@ -46,7 +48,7 @@ public class ScribeSink extends AbstractSink implements Configurable {
     private long batchSize = 1;
     private SinkCounter sinkCounter;
     private FlumeEventSerializer serializer;
-    private Scribe.Client client;
+    private scribe.Client client;
     private TTransport transport;
 
     @Override
@@ -83,7 +85,7 @@ public class ScribeSink extends AbstractSink implements Configurable {
     @Override
     public synchronized void start() {
         super.start();
-        client = new Scribe.Client(new TBinaryProtocol(transport, false, false));
+        client = new scribe.Client(new TBinaryProtocol(transport, false, false));
         sinkCounter.start();
     }
 
