@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume.kestrel;
+package com.ganji.cateye.flume;
 
 import java.nio.ByteBuffer;
 
@@ -10,9 +10,11 @@ import org.apache.thrift.transport.TMemoryBuffer;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
 
+import com.ganji.cateye.flume.kestrel.KestrelSinkConstants;
+
 import scribe.thrift.LogEntry;
 
-public class ScribeSerializer implements KestrelSerializer {
+public class ScribeSerializer implements MessageSerializer {
 
 	protected String categoryHeaderKey = "category";
 

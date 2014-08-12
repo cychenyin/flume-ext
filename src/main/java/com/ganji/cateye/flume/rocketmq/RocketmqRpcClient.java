@@ -1,17 +1,17 @@
 package com.ganji.cateye.flume.rocketmq;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Condition;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.Random;
 
+import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.FlumeException;
-import org.apache.flume.api.AbstractRpcClient;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.slf4j.Logger;
@@ -23,6 +23,9 @@ import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
+import com.ganji.cateye.flume.MessageSerializer;
+import com.ganji.cateye.flume.PlainMessageSerializer;
+import com.ganji.cateye.flume.ScribeSerializer;
 import com.ganji.cateye.utils.StatsDClientHelper;
 
 public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
@@ -37,13 +40,17 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 	private StatsDClientHelper stats;
 	// private final Random random = new Random();
 	public final DefaultMQProducer producer;
+	public String categoryHeaderKey;
+
+	MessageSerializer serializer;
 
 	public RocketmqRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
 		stats = new StatsDClientHelper();
 
-		producer = new DefaultMQProducer("cateye");
+		producer = new DefaultMQProducer(RocketmqSinkConstants.CONFIG_PRODUCERGROUP_DEFAULT);
+		serializer = new ScribeSerializer();
 	}
 
 	@Override
@@ -52,7 +59,8 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
-			Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
+
+			Message m = new Message(topic, event.getHeaders().get(categoryHeaderKey), event.getBody());
 			producer.send(m);
 			// 如果send有异常，则让它自然pop；否则就是成功了；这里不强制所有的状态就绪；原因详见rocketmq的发送代码注释
 			// SendResult status = client.producer.send(m);
@@ -96,7 +104,7 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			}
 			LOGGER.warn("RocketmqRpcClient: appendBatch size={}", events.size());
 			for (Event event : events) {
-				Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
+				Message m = new Message(topic, event.getHeaders().get(categoryHeaderKey), event.getBody());
 				producer.send(m);
 			}
 			stats.incrementCounter("producer", events.size());
@@ -178,19 +186,40 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 				hostname = host.getHostName();
 				port = host.getPortNumber();
 			} else {
-				hostname = properties.getProperty("hostname", "127.0.0.1");
-				port = Integer.parseInt(properties.getProperty("port", "9876"));
+				hostname = properties.getProperty(RocketmqSinkConstants.CONFIG_HOSTNAME, RocketmqSinkConstants.CONFIG_HOSTNAME_DEFAULT);
+				port = Integer.parseInt(properties
+						.getProperty(RocketmqSinkConstants.CONFIG_PORT, RocketmqSinkConstants.CONFIG_PORT_DEFAULT));
 			}
-			topic = properties.getProperty("topic", "cateye");
-			producerGroup = properties.getProperty("producerGroup", "cateye");
-			
+
+			// serialization
+			String serializerId = properties.getProperty(RocketmqSinkConstants.CONFIG_SERIALIZERID,
+					RocketmqSinkConstants.CONFIG_SERIALIZERID_DEFAULT);
+			if (serializerId.equalsIgnoreCase(RocketmqSinkConstants.CONFIG_SERIALIZERID_DEFAULT)) {
+				serializer = new ScribeSerializer();
+			}
+			else if (serializerId.equalsIgnoreCase("plain-message")) {
+				serializer = new PlainMessageSerializer();
+			}
+			else
+				throw new RuntimeException("invalid serializer specified");
+			this.categoryHeaderKey = properties.getProperty(RocketmqSinkConstants.CONFIG_CATEGORY_HEADER,
+					RocketmqSinkConstants.CONFIG_CATEGORY_HEADER_DEFAULT);
+			Context context = new Context();
+			context.put(RocketmqSinkConstants.CONFIG_CATEGORY_HEADER, categoryHeaderKey);
+			serializer.configure(context);
+			// producer
+			topic = properties.getProperty(RocketmqSinkConstants.CONFIG_TOPIC, RocketmqSinkConstants.CONFIG_TOPIC_DEFAULT);
+			producerGroup = properties.getProperty(RocketmqSinkConstants.CONFIG_PRODUCERGROUP,
+					RocketmqSinkConstants.CONFIG_PRODUCERGROUP_DEFAULT);
+
 			compressMsgBodyOverHowmuch = Integer.parseInt(properties.getProperty(
-					"compress-msg-body-over-how-much",
-					String.valueOf(4000)));
+					RocketmqSinkConstants.CONFIG_COMPRESSMSGBODYOVERHOWMUCH,
+					String.valueOf(RocketmqSinkConstants.CONFIG_COMPRESSMSGBODYOVERHOWMUCH_DEFAULT)));
 
 			batchSize = Integer.parseInt(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_BATCH_SIZE,
-					/* RpcClientConfigurationConstants.DEFAULT_BATCH_SIZE.toString() */"50"));
+					RocketmqSinkConstants.DEFAULT_BATCH_SIZE));
+
 			requestTimeout = Long.parseLong(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_REQUEST_TIMEOUT,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
@@ -206,8 +235,10 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			producer.setCompressMsgBodyOverHowmuch(compressMsgBodyOverHowmuch);
 			producer.setInstanceName(producerGroup + "_" + (new Random()).nextInt());
 
-			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={} /={}", this.hostname, this.port, String.format("{}:{}", hostname, port));
-			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(), producer.getInstanceName(), producer.buildMQClientId());
+			LOGGER.warn("===========RocketmqRpcClient: hostname={} port={} /={}", this.hostname, this.port,
+					String.format("{}:{}", hostname, port));
+			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(),
+					producer.getInstanceName(), producer.buildMQClientId());
 
 			producer.start();
 

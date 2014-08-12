@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume.kestrel;
+package com.ganji.cateye.flume;
 
 import java.nio.ByteBuffer;
 
@@ -7,7 +7,7 @@ import org.apache.flume.conf.Configurable;
 
 import scribe.thrift.LogEntry;
 
-public interface KestrelSerializer extends Configurable {
+public interface MessageSerializer extends Configurable {
 	LogEntry serialize(Event event);
 	
 	ByteBuffer encodeToByteBuffer(LogEntry log, boolean compress); 

@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume.kestrel;
+package com.ganji.cateye.flume;
 
 import java.nio.ByteBuffer;
 

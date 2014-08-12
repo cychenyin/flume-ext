@@ -17,6 +17,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.ganji.cateye.flume.rocketmq.RocketmqSink;
 import com.ganji.cateye.flume.scribe.EventToLogEntrySerializer;
 import com.ganji.cateye.flume.scribe.ScribeSinkConfigurationConstants;
+import com.ganji.cateye.utils.Stats;
 
 public class Entry {
 	private static final Logger logger = LoggerFactory.getLogger(Entry.class.getName());

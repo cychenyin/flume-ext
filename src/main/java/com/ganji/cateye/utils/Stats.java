@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume;
+package com.ganji.cateye.utils;
 
 import java.util.Random;
 
