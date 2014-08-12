@@ -18,7 +18,7 @@ public class ScribeSerializer implements KestrelSerializer {
 
 	/**
 	 * serialize the logEntry into a ByteBuffer, which is required by kestrel
-	 * 
+	 *  
 	 * @param log
 	 * @return
 	 */
@@ -27,15 +27,10 @@ public class ScribeSerializer implements KestrelSerializer {
 		try {
 			log.write(new TCompactProtocol(buffer));
 		} catch (TException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}
-
-		if (compress) {
-			// compress on the fly, but who knowns?
-		}
-
+		
 		int len = buffer.length();
 		ByteBuffer out = ByteBuffer.allocate(len);
 		out.put(buffer.getArray(), buffer.getBufferPosition(), len);
