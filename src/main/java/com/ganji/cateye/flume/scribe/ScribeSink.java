@@ -53,11 +53,11 @@ public class ScribeSink extends AbstractSink implements Configurable {
 
     @Override
     public void configure(Context context) {
-        String name = context.getString(ScribeSinkConfigurationConstants.CONFIG_SINK_NAME, "sink-" + hashCode());
+        String name = context.getString(ScribeSinkConstants.CONFIG_SINK_NAME, "sink-" + hashCode());
         setName(name);
         sinkCounter = new SinkCounter(name);
-        batchSize = context.getLong(ScribeSinkConfigurationConstants.CONFIG_BATCHSIZE, 1L);
-        String clazz = context.getString(ScribeSinkConfigurationConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
+        batchSize = context.getLong(ScribeSinkConstants.CONFIG_BATCHSIZE, 1L);
+        String clazz = context.getString(ScribeSinkConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
 
         try {
             serializer = (FlumeEventSerializer)Class.forName(clazz).newInstance();
@@ -70,8 +70,8 @@ public class ScribeSink extends AbstractSink implements Configurable {
             serializer.configure(context);
         }
 
-        String host = context.getString(ScribeSinkConfigurationConstants.CONFIG_SCRIBE_HOST);
-        int port = context.getInteger(ScribeSinkConfigurationConstants.CONFIG_SCRIBE_PORT);
+        String host = context.getString(ScribeSinkConstants.CONFIG_SCRIBE_HOST);
+        int port = context.getInteger(ScribeSinkConstants.CONFIG_SCRIBE_PORT);
 
         try {
             transport = new TFramedTransport(new TSocket(new Socket(host, port)));

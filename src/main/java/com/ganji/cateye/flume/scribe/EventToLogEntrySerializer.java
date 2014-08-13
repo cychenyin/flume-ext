@@ -36,7 +36,7 @@ public class EventToLogEntrySerializer implements FlumeEventSerializer {
 
         String category = event.getHeaders().get(scribeCategoryHeaderKey);
         if (category == null) {
-            category = "default";
+            category = "empty";
         }
 
         entry.setCategory(category);
@@ -49,9 +49,9 @@ public class EventToLogEntrySerializer implements FlumeEventSerializer {
 
     @Override
     public void configure(Context context) {
-        scribeCategoryHeaderKey = context.getString(ScribeSinkConfigurationConstants.CONFIG_SCRIBE_CATEGORY_HEADER);
+        scribeCategoryHeaderKey = context.getString(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER);
         if (scribeCategoryHeaderKey == null) {
-            throw new RuntimeException(ScribeSinkConfigurationConstants.CONFIG_SCRIBE_CATEGORY_HEADER + " is not configured.");
+            throw new RuntimeException(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER + " is not configured.");
         }
     }
 

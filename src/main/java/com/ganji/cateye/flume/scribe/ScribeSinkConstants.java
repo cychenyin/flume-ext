@@ -18,7 +18,7 @@
  */
 package com.ganji.cateye.flume.scribe;
 
-public class ScribeSinkConfigurationConstants {
+public class ScribeSinkConstants {
     /**
      * Maximum number of events the sink should take from the channel per
      * transaction, if available.
@@ -53,6 +53,6 @@ public class ScribeSinkConfigurationConstants {
      */
     public static final String CONFIG_SCRIBE_CATEGORY = "category";
 
-    private ScribeSinkConfigurationConstants() {
+    private ScribeSinkConstants() {
     }
 }

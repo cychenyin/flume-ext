@@ -43,6 +43,7 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 	public String categoryHeaderKey;
 
 	MessageSerializer serializer;
+	
 
 	public RocketmqRpcClient() {
 		stateLock = new ReentrantLock(true);
