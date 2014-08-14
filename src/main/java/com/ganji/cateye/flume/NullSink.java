@@ -5,8 +5,6 @@
  * */
 package com.ganji.cateye.flume;
 
-import java.util.Properties;
-
 import org.apache.flume.Channel;
 import org.apache.flume.ChannelException;
 import org.apache.flume.Context;
