@@ -21,8 +21,8 @@ package com.ganji.cateye.flume.scribe;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
-
-import scribe.thrift.LogEntry;
+import com.ganji.cateye.flume.scribe.thrift.*;
+//import scribe.thrift.LogEntry;
 
 import java.nio.ByteBuffer;
 

@@ -5,7 +5,9 @@ import java.nio.ByteBuffer;
 import org.apache.flume.Event;
 import org.apache.flume.conf.Configurable;
 
-import scribe.thrift.LogEntry;
+import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+
+//import scribe.thrift.LogEntry;
 
 public interface MessageSerializer extends Configurable {
 	LogEntry serialize(Event event);

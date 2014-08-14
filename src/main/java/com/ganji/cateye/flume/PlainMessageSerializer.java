@@ -2,7 +2,9 @@ package com.ganji.cateye.flume;
 
 import java.nio.ByteBuffer;
 
-import scribe.thrift.LogEntry;
+import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+
+//import scribe.thrift.LogEntry;
 
 public class PlainMessageSerializer extends ScribeSerializer{
 

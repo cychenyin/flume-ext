@@ -21,8 +21,8 @@ package com.ganji.cateye.flume.scribe;
 import org.apache.flume.Event;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.conf.ConfigurableComponent;
-
-import scribe.thrift.LogEntry;
+import com.ganji.cateye.flume.scribe.thrift.*;
+//import scribe.thrift.LogEntry;
 
 public interface FlumeEventSerializer extends Configurable, ConfigurableComponent {
     public LogEntry serialize(Event event);

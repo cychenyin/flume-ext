@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-import scribe.thrift.*;
-
+//import scribe.thrift.*;
+import com.ganji.cateye.flume.scribe.thrift.*;
 
 /**
  * Synchronous Sink that forwards messages to a scribe listener. <p>
@@ -99,7 +99,7 @@ public class ScribeSink extends AbstractSink implements Configurable {
 
     @Override
     public Status process() throws EventDeliveryException {
-        logger.debug("start processing");
+        logger.warn("start processing");
 
         Status status = Status.READY;
         Channel channel = getChannel();

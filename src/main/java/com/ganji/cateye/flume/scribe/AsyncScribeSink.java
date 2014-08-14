@@ -42,7 +42,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import scribe.thrift.*;
+//import scribe.thrift.*;
+import com.ganji.cateye.flume.scribe.thrift.*;
 
 /**
  * Asynchronous Sink that forwards messages to a scribe listener. <p>

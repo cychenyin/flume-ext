@@ -24,7 +24,7 @@ import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import scribe.thrift.LogEntry;
+// import scribe.thrift.LogEntry;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -33,6 +33,7 @@ import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.flume.MessageSerializer;
 import com.ganji.cateye.flume.PlainMessageSerializer;
 import com.ganji.cateye.flume.ScribeSerializer;
+import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 import com.ganji.cateye.utils.StatsDClientHelper;
 
 /**
