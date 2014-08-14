@@ -49,7 +49,7 @@ public class ScribeSinkConstants {
      */
     public static final String CONFIG_SCRIBE_CATEGORY_HEADER = "scribe.category.header";
     /**
-     * Flume Header Value that maps to a Scribe Category, used for tests.
+     * Flume Header Value that maps to a Scribe Category, default value of key CONFIG_SCRIBE_CATEGORY_HEADER.
      */
     public static final String CONFIG_SCRIBE_CATEGORY = "category";
 
