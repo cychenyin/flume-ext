@@ -19,7 +19,6 @@
 
 package com.ganji.cateye.flume.scribe;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,19 +31,21 @@ import org.apache.flume.conf.Configurable;
 import org.apache.flume.event.EventBuilder;
 import org.apache.flume.instrumentation.SourceCounter;
 import org.apache.flume.source.AbstractSource;
-import com.ganji.cateye.flume.scribe.thrift.*;
-import com.ganji.cateye.flume.scribe.thrift.scribe.Iface;
-
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.THsHaServer;
-import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.facebook.fb303.fb_status;
+import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+import com.ganji.cateye.flume.scribe.thrift.ResultCode;
+import com.ganji.cateye.flume.scribe.thrift.scribe;
+import com.ganji.cateye.flume.scribe.thrift.scribe.Iface;
 
 /**
  * Flume should adopt the Scribe entry {@code LogEntry} from existing
@@ -85,7 +86,8 @@ public class ScribeSource extends AbstractSource implements
 
   private class Startup extends Thread {
 
-    public void run() {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	public void run() {
       try {
         scribe.Processor processor = new scribe.Processor(new Receiver());
         TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
@@ -176,6 +178,73 @@ public class ScribeSource extends AbstractSource implements
 
       return ResultCode.TRY_LATER;
     }
+
+	@Override
+	public String getName() throws TException {
+		return "scribeSourceReceiver";
+	}
+
+	@Override
+	public String getVersion() throws TException {
+		return "1.0.0";
+	}
+
+	@Override
+	public fb_status getStatus() throws TException {
+		return fb_status.ALIVE;
+	}
+
+	@Override
+	public String getStatusDetails() throws TException {
+		return "ALIVE";
+	}
+
+	@Override
+	public Map<String, Long> getCounters() throws TException {
+		return null;
+	}
+
+	@Override
+	public long getCounter(String key) throws TException {
+		return 0;
+	}
+
+	@Override
+	public void setOption(String key, String value) throws TException {
+	}
+
+	@Override
+	public String getOption(String key) throws TException {
+		return null;
+	}
+
+	@Override
+	public Map<String, String> getOptions() throws TException {
+		return null;
+	}
+
+	@Override
+	public String getCpuProfile(int profileDurationInSec) throws TException {
+		return null;
+	}
+
+	@Override
+	public long aliveSince() throws TException {
+		return 0;
+	}
+
+	@Override
+	public void reinitialize() throws TException {
+	}
+
+	@Override
+	public void shutdown() throws TException {
+	}
+
+	@Override
+	public String getUserLogs(int userId, int page, int pageCount, String ruleId) throws TException {
+		return null;
+	}
 	
   }
 
