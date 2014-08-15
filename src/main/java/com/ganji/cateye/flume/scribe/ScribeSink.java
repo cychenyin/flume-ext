@@ -30,6 +30,7 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.net.Socket;
@@ -76,7 +77,7 @@ public class ScribeSink extends AbstractSink implements Configurable {
             transport = new TFramedTransport(new TSocket(new Socket(host, port)));
         }
         catch (Exception ex) {
-            logger.error("Unable to create Thrift Transport", ex);
+            logger.error("Unable to create Thrift Transport, host=" + host + ":port=" + port, ex);
             throw new RuntimeException(ex);
         }
     }
@@ -126,7 +127,7 @@ public class ScribeSink extends AbstractSink implements Configurable {
         throws EventDeliveryException {
         try {
             sinkCounter.addToEventDrainAttemptCount(eventList.size());
-            ResultCode rc = client.Log(eventList);
+            ResultCode rc = eventList.size() > 0 ? client.Log(eventList) : ResultCode.OK;
             if (rc.equals(ResultCode.OK)) {
                 transaction.commit();
                 sinkCounter.addToEventDrainSuccessCount(eventList.size());

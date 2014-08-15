@@ -26,25 +26,33 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Charsets;
+
 /**
  * Not really a unit test
  */
 public class ScribeSinkTest {
-    private AsyncScribeSink sink = new AsyncScribeSink();
-
+    // private AsyncScribeSink sink = new AsyncScribeSink();
+    private ScribeSink sink = new ScribeSink();
+    
     @Before
     public void setUp() throws Exception {
         Context ctx = new Context();
         ctx.put(ScribeSinkConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_HOST, "127.0.0.1");
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_PORT, "1463");
+        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_HOST, "192.168.129.213");
+        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_PORT, "31463");
         ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER,
                 ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY);
+        ctx.put(ScribeSinkConstants.CONFIG_BATCHSIZE, "10");
+        
+        
         sink.configure(ctx);
         PseudoTxnMemoryChannel c = new PseudoTxnMemoryChannel();
         c.configure(ctx);
         c.start();
         sink.setChannel(c);
+        sink.setName("scribeTester");
+        System.out.println(sink.getName());
         sink.start();
     }
 
@@ -57,10 +65,10 @@ public class ScribeSinkTest {
 
     @Test
     public void testProcess() throws Exception {
-//        Event e = new SimpleEvent();
-//        e.getHeaders().put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY, "default1");
-//        e.setBody("This is test ".getBytes());
-//        sink.getChannel().put(e);
-//        sink.process();
+        Event e = new SimpleEvent();
+        e.getHeaders().put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY, "cateye.a6");
+        e.setBody("This is test ".getBytes(Charsets.UTF_8));
+        sink.getChannel().put(e);
+        sink.process();
     }
 }

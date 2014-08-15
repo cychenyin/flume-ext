@@ -23,39 +23,46 @@ import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
 
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+import com.google.common.base.Strings;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 public class EventToLogEntrySerializer implements FlumeEventSerializer {
-    private String scribeCategoryHeaderKey;
-    
-    @Override
-    public LogEntry serialize(Event event) {
-        LogEntry entry = new LogEntry();
-        entry.setMessage(ByteBuffer.wrap(event.getBody()));
-        
-        String category = event.getHeaders().get(scribeCategoryHeaderKey);
-        if (category == null) {
-            category = "empty";
-        }
+	private String scribeCategoryHeaderKey;
 
-        entry.setCategory(category);
-        return entry;
-    }
+	@Override
+	public LogEntry serialize(Event event) {
+		LogEntry entry = new LogEntry();
+		entry.setMessage(ByteBuffer.wrap(event.getBody()));
 
-    @Override
-    public void close() {
-    }
+		String category = event.getHeaders().get(scribeCategoryHeaderKey);
+		if (category == null) {
+			category = "empty";
+		}
+		try {
+			System.out.println(new String(event.getBody(), "UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
 
-    @Override
-    public void configure(Context context) {
-        scribeCategoryHeaderKey = context.getString(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER);
-        if (scribeCategoryHeaderKey == null) {
-            throw new RuntimeException(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER + " is not configured.");
-        }
-    }
+		entry.setCategory(category);
+		return entry;
+	}
 
-    @Override
-    public void configure(ComponentConfiguration componentConfiguration) {
-    }
+	@Override
+	public void close() {
+	}
+
+	@Override
+	public void configure(Context context) {
+		scribeCategoryHeaderKey = context.getString(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER);
+		if (scribeCategoryHeaderKey == null) {
+			throw new RuntimeException(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER + " is not configured.");
+		}
+	}
+
+	@Override
+	public void configure(ComponentConfiguration componentConfiguration) {
+	}
 }
