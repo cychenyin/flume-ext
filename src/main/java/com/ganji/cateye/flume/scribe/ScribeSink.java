@@ -73,12 +73,15 @@ public class ScribeSink extends AbstractSink implements Configurable {
         int port = context.getInteger(ScribeSinkConstants.CONFIG_SCRIBE_PORT);
 
         try {
+		logger.warn("scribeSink.host={} port={}", host, port);
             transport = new TFramedTransport(new TSocket(new Socket(host, port)));
+		logger.warn("scribeSink has created transport");
         }
         catch (Exception ex) {
-            logger.error("Unable to create Thrift Transport", ex);
+		logger.error("Unable to create Thrift Transport, host=" + host + ":port=" + port, ex);
             throw new RuntimeException(ex);
         }
+	logger.warn("configggggggggggggggggggggggggggggggggggggggggggggggggggggg");
     }
 
     @Override
@@ -126,7 +129,10 @@ public class ScribeSink extends AbstractSink implements Configurable {
         throws EventDeliveryException {
         try {
             sinkCounter.addToEventDrainAttemptCount(eventList.size());
-            ResultCode rc = client.Log(eventList);
+		logger.warn("before client.log. size=" + eventList.size());
+            //ResultCode rc = client.Log(eventList);
+		ResultCode rc = eventList.size() > 0 ? client.Log(eventList) : ResultCode.OK;
+		logger.warn("after client.log. result=" + rc.name() );
             if (rc.equals(ResultCode.OK)) {
                 transaction.commit();
                 sinkCounter.addToEventDrainSuccessCount(eventList.size());

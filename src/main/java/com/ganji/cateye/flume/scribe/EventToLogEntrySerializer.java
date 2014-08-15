@@ -39,6 +39,12 @@ public class EventToLogEntrySerializer implements FlumeEventSerializer {
             category = "empty";
         }
 
+	try {
+		System.out.println(new String(event.getBody(), "UTF-8"));
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+
         entry.setCategory(category);
         return entry;
     }
