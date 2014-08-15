@@ -13,8 +13,6 @@ import org.apache.thrift.transport.TTransport;
 import com.ganji.cateye.flume.kestrel.KestrelSinkConstants;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 
-//import scribe.thrift.LogEntry;
-
 public class ScribeSerializer implements MessageSerializer {
 
 	protected String categoryHeaderKey = "category";

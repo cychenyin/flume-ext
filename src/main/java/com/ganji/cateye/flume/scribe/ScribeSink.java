@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-//import scribe.thrift.*;
 import com.ganji.cateye.flume.scribe.thrift.*;
 
 /**

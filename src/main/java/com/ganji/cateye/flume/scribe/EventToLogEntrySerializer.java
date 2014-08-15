@@ -21,8 +21,8 @@ package com.ganji.cateye.flume.scribe;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
-import com.ganji.cateye.flume.scribe.thrift.*;
-//import scribe.thrift.LogEntry;
+
+import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 
 import java.nio.ByteBuffer;
 
@@ -33,7 +33,7 @@ public class EventToLogEntrySerializer implements FlumeEventSerializer {
     public LogEntry serialize(Event event) {
         LogEntry entry = new LogEntry();
         entry.setMessage(ByteBuffer.wrap(event.getBody()));
-
+        
         String category = event.getHeaders().get(scribeCategoryHeaderKey);
         if (category == null) {
             category = "empty";

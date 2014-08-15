@@ -18,6 +18,8 @@
  */
 package com.ganji.cateye.flume.scribe;
 
+import com.ganji.cateye.flume.scribe.thrift.*;
+import com.ganji.cateye.flume.scribe.thrift.scribe.AsyncClient;
 import com.google.common.base.Throwables;
 import org.apache.flume.Channel;
 import org.apache.flume.ChannelException;
@@ -42,8 +44,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-//import scribe.thrift.*;
-import com.ganji.cateye.flume.scribe.thrift.*;
 
 /**
  * Asynchronous Sink that forwards messages to a scribe listener. <p>
@@ -55,7 +55,7 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
     private long batchSize = 1;
     private SinkCounter sinkCounter;
     private FlumeEventSerializer serializer;
-    private scribe.AsyncClient client;
+    private AsyncClient client;
     private TAsyncClientManager clientManager;
     private TNonblockingTransport transport;
     private long timeout;

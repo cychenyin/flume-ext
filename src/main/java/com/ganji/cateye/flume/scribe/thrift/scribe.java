@@ -4,9 +4,10 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-// package scribe.thrift;
 package com.ganji.cateye.flume.scribe.thrift;
 
+import org.apache.flume.source.scribe.Scribe.AsyncIface;
+import org.apache.flume.source.scribe.Scribe.Iface;
 import org.apache.thrift.scheme.IScheme;
 import org.apache.thrift.scheme.SchemeFactory;
 import org.apache.thrift.scheme.StandardScheme;
@@ -33,15 +34,16 @@ import org.slf4j.LoggerFactory;
 
 public class scribe {
 
-  public interface Iface extends com.facebook.fb303.FacebookService.Iface {
+  public interface Iface {
+ //public interface Iface extends com.facebook.fb303.FacebookService.Iface {
 
     public ResultCode Log(List<LogEntry> messages) throws org.apache.thrift.TException;
 
-    public String getUserLogs(int userId, int page, int pageCount, String ruleId) throws org.apache.thrift.TException;
+    // public String getUserLogs(int userId, int page, int pageCount, String ruleId) throws org.apache.thrift.TException;
 
   }
-
-  public interface AsyncIface extends com.facebook.fb303.FacebookService .AsyncIface {
+  public interface AsyncIface {
+//  public interface AsyncIface extends com.facebook.fb303.FacebookService .AsyncIface {
 
     public void Log(List<LogEntry> messages, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.Log_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -49,7 +51,8 @@ public class scribe {
 
   }
 
-  public static class Client extends com.facebook.fb303.FacebookService.Client implements Iface {
+  public static class Client extends org.apache.thrift.TServiceClient implements Iface {
+//  public static class Client extends com.facebook.fb303.FacebookService.Client implements Iface {
     public static class Factory implements org.apache.thrift.TServiceClientFactory<Client> {
       public Factory() {}
       public Client getClient(org.apache.thrift.protocol.TProtocol prot) {
@@ -119,7 +122,8 @@ public class scribe {
     }
 
   }
-  public static class AsyncClient extends com.facebook.fb303.FacebookService.AsyncClient implements AsyncIface {
+  // public static class AsyncClient extends com.facebook.fb303.FacebookService.AsyncClient implements AsyncIface {
+  public static class AsyncClient extends org.apache.thrift.async.TAsyncClient implements AsyncIface {
     public static class Factory implements org.apache.thrift.async.TAsyncClientFactory<AsyncClient> {
       private org.apache.thrift.async.TAsyncClientManager clientManager;
       private org.apache.thrift.protocol.TProtocolFactory protocolFactory;
@@ -211,7 +215,8 @@ public class scribe {
 
   }
 
-  public static class Processor<I extends Iface> extends com.facebook.fb303.FacebookService.Processor<I> implements org.apache.thrift.TProcessor {
+//  public static class Processor<I extends Iface> extends com.facebook.fb303.FacebookService.Processor<I> implements org.apache.thrift.TProcessor {
+  public static class Processor<I extends Iface> extends org.apache.thrift.TBaseProcessor implements org.apache.thrift.TProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class.getName());
     public Processor(I iface) {
       super(iface, getProcessMap(new HashMap<String, org.apache.thrift.ProcessFunction<I, ? extends org.apache.thrift.TBase>>()));
@@ -223,7 +228,7 @@ public class scribe {
 
     private static <I extends Iface> Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> getProcessMap(Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> processMap) {
       processMap.put("Log", new Log());
-      processMap.put("getUserLogs", new getUserLogs());
+      // processMap.put("getUserLogs", new getUserLogs());
       return processMap;
     }
 
@@ -247,25 +252,25 @@ public class scribe {
       }
     }
 
-    public static class getUserLogs<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getUserLogs_args> {
-      public getUserLogs() {
-        super("getUserLogs");
-      }
-
-      public getUserLogs_args getEmptyArgsInstance() {
-        return new getUserLogs_args();
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public getUserLogs_result getResult(I iface, getUserLogs_args args) throws org.apache.thrift.TException {
-        getUserLogs_result result = new getUserLogs_result();
-        result.success = iface.getUserLogs(args.userId, args.page, args.pageCount, args.ruleId);
-        return result;
-      }
-    }
+//    public static class getUserLogs<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getUserLogs_args> {
+//      public getUserLogs() {
+//        super("getUserLogs");
+//      }
+//
+//      public getUserLogs_args getEmptyArgsInstance() {
+//        return new getUserLogs_args();
+//      }
+//
+//      protected boolean isOneway() {
+//        return false;
+//      }
+//
+//      public getUserLogs_result getResult(I iface, getUserLogs_args args) throws org.apache.thrift.TException {
+//        getUserLogs_result result = new getUserLogs_result();
+//        result.success = iface.getUserLogs(args.userId, args.page, args.pageCount, args.ruleId);
+//        return result;
+//      }
+//    }
 
   }
 

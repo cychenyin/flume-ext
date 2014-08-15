@@ -4,13 +4,9 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-//package scribe.thrift;
 package com.ganji.cateye.flume.scribe.thrift;
 
 
-import java.util.Map;
-import java.util.HashMap;
-import org.apache.thrift.TEnum;
 
 public enum ResultCode implements org.apache.thrift.TEnum {
   OK(0),

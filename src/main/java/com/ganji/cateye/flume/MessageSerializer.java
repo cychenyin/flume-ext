@@ -7,7 +7,6 @@ import org.apache.flume.conf.Configurable;
 
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 
-//import scribe.thrift.LogEntry;
 
 public interface MessageSerializer extends Configurable {
 	LogEntry serialize(Event event);

@@ -4,8 +4,6 @@ import java.nio.ByteBuffer;
 
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 
-//import scribe.thrift.LogEntry;
-
 public class PlainMessageSerializer extends ScribeSerializer{
 
 	@Override
