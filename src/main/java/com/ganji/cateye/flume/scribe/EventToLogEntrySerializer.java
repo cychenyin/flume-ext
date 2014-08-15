@@ -18,15 +18,14 @@
  */
 package com.ganji.cateye.flume.scribe;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
 
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
-import com.google.common.base.Strings;
-
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 
 public class EventToLogEntrySerializer implements FlumeEventSerializer {
 	private String scribeCategoryHeaderKey;
