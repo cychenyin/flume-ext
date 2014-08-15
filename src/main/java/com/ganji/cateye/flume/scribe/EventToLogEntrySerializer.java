@@ -26,8 +26,11 @@ import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
 
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+ 
 public class EventToLogEntrySerializer implements FlumeEventSerializer {
+    private static final Logger logger = LoggerFactory.getLogger(EventToLogEntrySerializer.class.getName());
 	private String scribeCategoryHeaderKey;
 
 	@Override
@@ -38,11 +41,6 @@ public class EventToLogEntrySerializer implements FlumeEventSerializer {
 		String category = event.getHeaders().get(scribeCategoryHeaderKey);
 		if (category == null) {
 			category = "empty";
-		}
-		try {
-			System.out.println(new String(event.getBody(), "UTF-8"));
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
 		}
 
 		entry.setCategory(category);
