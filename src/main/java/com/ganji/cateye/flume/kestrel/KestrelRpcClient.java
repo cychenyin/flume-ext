@@ -19,6 +19,7 @@ import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.FlumeException;
+import org.apache.flume.api.AbstractRpcClient;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.flume.MessageSerializer;
 import com.ganji.cateye.flume.PlainMessageSerializer;
 import com.ganji.cateye.flume.ScribeSerializer;
+import com.ganji.cateye.flume.scribe.FlumeEventSerializer;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 import com.ganji.cateye.utils.StatsDClientHelper;
 
@@ -50,7 +52,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	private String categoryHeaderKey = null;
 	private String forceCategory = null;
 	private boolean compress = false;
-	private String serializerId = "scribe";
+	private String serializerName = "scribe";
 	@SuppressWarnings("unused")
 	private final int RETRY_INTERVAL = 1 * 1000;
 	private MessageSerializer serializer = null;
@@ -126,9 +128,9 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 				LogEntry log = serializer.serialize(event);
 				String queue = routes.route(log.category);
 				// avoid if queue is empty
-				if(StringUtils.isNotEmpty(queue)){  
+				if (StringUtils.isNotEmpty(queue)) {
 					List<ByteBuffer> list = items.get(queue);
-					if(list == null) {
+					if (list == null) {
 						list = new ArrayList<ByteBuffer>();
 						items.put(queue, list);
 					}
@@ -136,10 +138,10 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 				}
 			}
 			// send
-			for(Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
+			for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
 				client.put(e.getKey(), e.getValue(), 0);
 			}
-			
+
 			stats.incrementCounter("producer", events.size());
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
@@ -223,39 +225,45 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 				hostname = properties.getProperty(KestrelSinkConstants.CONFIG_HOSTNAME, KestrelSinkConstants.CONFIG_HOSTNAME_DEFAULT);
 				port = Integer.parseInt(properties.getProperty(KestrelSinkConstants.CONFIG_PORT, KestrelSinkConstants.CONFIG_PORT_DEFAULT));
 			}
-			
+
 			// serialization
-			serializerId = properties.getProperty(KestrelSinkConstants.CONFIG_SERIALIZERID, KestrelSinkConstants.CONFIG_SERIALIZERID_DEFAULT);
-			if (serializerId.equalsIgnoreCase(KestrelSinkConstants.CONFIG_SERIALIZERID_DEFAULT)) {
+			serializerName = properties.getProperty(KestrelSinkConstants.CONFIG_SERIALIZER, KestrelSinkConstants.CONFIG_SERIALIZER_DEFAULT);
+			if (serializerName.equalsIgnoreCase(KestrelSinkConstants.CONFIG_SERIALIZER_DEFAULT)) {
 				serializer = new ScribeSerializer();
 			}
-			else if (serializerId.equalsIgnoreCase("plain-message")) {
+			else if (serializerName.equalsIgnoreCase("plain-message")) {
 				serializer = new PlainMessageSerializer();
 			}
-			else
-				throw new RuntimeException("invalid serializer specified");
+			else {
+				try {
+					serializer = (MessageSerializer) Class.forName(serializerName).newInstance();
+				} catch (Exception ex) {
+					throw new RuntimeException("invalid serializer specified", ex);
+				}
+			}
 			categoryHeaderKey = properties.getProperty(KestrelSinkConstants.CONFIG_CATEGORY_HEADER
 					, KestrelSinkConstants.CONFIG_CATEGORY_HEADER_DEFAULT);
+
 			Context context = new Context();
-			context.put("serializerId", serializerId);
+			context.put(KestrelSinkConstants.CONFIG_SERIALIZER, serializerName);
 			context.put(KestrelSinkConstants.CONFIG_CATEGORY_HEADER, categoryHeaderKey);
 			serializer.configure(context);
 
 			// routes
-			String rs = properties.getProperty("routes", "");
+			String rs = properties.getProperty(KestrelSinkConstants.CONFIG_ROUTES, "");
 			if (StringUtils.isEmpty(rs))
 				throw new FlumeException("routes of KestrelRpcClient not configed");
 			String[] arrRoute = rs.split(RouteConfig.SPLITTER);
 			for (String route : arrRoute) {
 				if (route.isEmpty())
 					continue;
-				String prefix = "route." + route + ".";
-				routes.add(properties.getProperty(prefix + "categories"), properties.getProperty(prefix + "queue"));
+				String prefix = KestrelSinkConstants.CONFIG_ROUTE_PREFIX + route;
+				routes.add(properties.getProperty(prefix + KestrelSinkConstants.CONFIG_ROUTE_CATEGORY),
+						properties.getProperty(prefix + KestrelSinkConstants.CONFIG_ROUTE_QUEUE));
 			}
 			// sink global
-			batchSize = Integer.parseInt(properties.getProperty(
-					RpcClientConfigurationConstants.CONFIG_BATCH_SIZE,
-					/* RpcClientConfigurationConstants.DEFAULT_BATCH_SIZE.toString() */"50"));
+			batchSize = Integer.parseInt(properties.getProperty(KestrelSinkConstants.CONFIG_BATCHSIZE,
+					KestrelSinkConstants.CONFIG_BATCHSIZE_DEFAULT));
 			requestTimeout = Long.parseLong(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_REQUEST_TIMEOUT,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
@@ -334,7 +342,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 				routes.put(c, queue);
 			}
 		}
-		
+
 		// find kestrel queue name thought category
 		public String route(String category) {
 			String ret = routes.get(category);

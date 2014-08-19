@@ -19,16 +19,15 @@ import com.ganji.cateye.flume.AbstractMultiThreadRpcSink;
 /*// TODO 修改下参数注释
  * Kestrel sink @see KestrelRpcClient
  * configuration item supported:
- * hosts = h1 h2
- * hosts.h1 = 192.168.1.2:8080
- * hosts.h2 = 192.168.1.3:8080
- * hosts = 192.168.1.2:8080
+ * hostname = 192.168.1.2
+ * port = :8080
  * compression-level = 6
  * batch-size = 1
  * request-timeout = 20
  * connect-timeout = 20
  * 	(both in second)
  * maxConnections = 5
+ * 
  */
 public class KestrelSink extends AbstractMultiThreadRpcSink {
 	private static final Logger logger = LoggerFactory.getLogger(KestrelSink.class);

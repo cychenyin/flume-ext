@@ -8,15 +8,23 @@ public final class KestrelSinkConstants {
 	public final static String CONFIG_PORT = "port";
 	public final static String CONFIG_PORT_DEFAULT = "2229";
 
-	public static final String CONFIG_CATEGORY_HEADER = "scribe.header";
+	public static final String CONFIG_CATEGORY_HEADER = "scribe.category.header";
 	public static final String CONFIG_CATEGORY_HEADER_DEFAULT = "category";
-
-	public static final String CONFIG_FORCECATEGORY = "forceCategory";
 
 	public static final String CONFIG_COMPRESS = "compress";
 	public static final String CONFIG_COMPRESS_DEFAULT = "False";
 
-	public static final String CONFIG_SERIALIZERID = "serializerId";
-	public static final String CONFIG_SERIALIZERID_DEFAULT = "scribe";
+	public static final String CONFIG_SERIALIZER = "serializer";
+	public static final String CONFIG_SERIALIZER_DEFAULT = "scribe";
+	
+	public static final String CONFIG_BATCHSIZE = "batchSize";
+	public static final String CONFIG_BATCHSIZE_DEFAULT = "50";
 
+	
+	public static final String CONFIG_ROUTES = "routes";
+	public static final String CONFIG_ROUTE_PREFIX = "route.";
+	public static final String CONFIG_ROUTE_CATEGORY = ".categories";
+	// kestrel queue name
+	public static final String CONFIG_ROUTE_QUEUE = ".queue";
+	
 }

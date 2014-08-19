@@ -34,6 +34,16 @@ import com.google.common.base.Charsets;
 public class ScribeSinkTest {
     // private AsyncScribeSink sink = new AsyncScribeSink();
     private ScribeSink sink = new ScribeSink();
+
+    @Test
+    public void testProcess() throws Exception {
+        Event e = new SimpleEvent();
+        e.getHeaders().put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY, "c1");
+        e.setBody("This is test ".getBytes(Charsets.UTF_8));
+        sink.getChannel().put(e);
+        sink.process();
+    }
+
     
     @Before
     public void setUp() throws Exception {
@@ -63,12 +73,4 @@ public class ScribeSinkTest {
         sink.stop();
     }
 
-    @Test
-    public void testProcess() throws Exception {
-        Event e = new SimpleEvent();
-        e.getHeaders().put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY, "cateye.a6");
-        e.setBody("This is test ".getBytes(Charsets.UTF_8));
-        sink.getChannel().put(e);
-        sink.process();
-    }
 }
