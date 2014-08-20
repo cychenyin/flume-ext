@@ -80,7 +80,6 @@ public class ScribeSink extends AbstractSink implements Configurable {
 			logger.error("Unable to create Thrift Transport, host=" + host + ":port=" + port, ex);
 			throw new RuntimeException(ex);
 		}
-		logger.warn("configggggggggggggggggggggggggggggggggggggggggggggggggggggg");
 	}
 
 	@Override
@@ -128,10 +127,10 @@ public class ScribeSink extends AbstractSink implements Configurable {
 			throws EventDeliveryException {
 		try {
 			sinkCounter.addToEventDrainAttemptCount(eventList.size());
-			logger.warn("before client.log. size=" + eventList.size());
+//			logger.warn("before client.log. size=" + eventList.size());
 			// ResultCode rc = client.Log(eventList);
 			ResultCode rc = eventList.size() > 0 ? client.Log(eventList) : ResultCode.OK;
-			logger.warn("after client.log. result=" + rc.name());
+//			logger.warn("after client.log. result=" + rc.name());
 			if (rc.equals(ResultCode.OK)) {
 				transaction.commit();
 				sinkCounter.addToEventDrainSuccessCount(eventList.size());
