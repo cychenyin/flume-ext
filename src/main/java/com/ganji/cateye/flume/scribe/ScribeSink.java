@@ -99,7 +99,7 @@ public class ScribeSink extends AbstractSink implements Configurable {
 
 	@Override
 	public Status process() throws EventDeliveryException {
-		logger.warn("start processing");
+		logger.debug("start processing");
 
 		Status status = Status.READY;
 		Channel channel = getChannel();
