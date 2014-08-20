@@ -121,7 +121,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
-			LOGGER.warn("RocketmqRpcClient: appendBatch size={}", events.size());
+			LOGGER.info("KestrelRpcClient: appendBatch size={}", events.size());
 			// group log by route config
 			Map<String, List<ByteBuffer>> items = new HashMap<String, List<ByteBuffer>>();
 			for (Event event : events) {
@@ -145,7 +145,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			stats.incrementCounter("producer", events.size());
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
-			LOGGER.warn("RocketmqRpcClient fail to send message", e);
+			LOGGER.warn("KestrelRpcClient fail to send message", e);
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();
 				// if (cause instanceof EventDeliveryException) {
@@ -205,7 +205,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	private void dump(Properties properties) {
 		for (Object key : properties.keySet()) {
 			// System.out.println(properties.getProperty(key.toString()));
-			LOGGER.warn("RocketmqRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
+			LOGGER.warn("KestrelRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}
 
@@ -277,7 +277,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 
 			connState = State.READY;
 		} catch (Throwable ex) {
-			LOGGER.warn("RocketmqRpcClient fail to start producer");
+			LOGGER.warn("KestrelRpcClient fail to start producer");
 			// Failed to configure, kill the client.
 			connState = State.DEAD;
 			if (ex instanceof Error) {

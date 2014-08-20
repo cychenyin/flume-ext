@@ -95,7 +95,7 @@ public class ScribeSource extends AbstractSource implements
 
         args.workerThreads(workers);
         args.processor(processor);
-        args.transportFactory(new TFramedTransport.Factory());
+        args.transportFactory(new TFramedTransport.Factory(Integer.MAX_VALUE));
         args.protocolFactory(new TBinaryProtocol.Factory(false, false));
 
         server = new THsHaServer(args);

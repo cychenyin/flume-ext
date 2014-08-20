@@ -23,10 +23,9 @@ public class Entry {
 	private static final Logger logger = LoggerFactory.getLogger(Entry.class.getName());
 
 	public static void main(String[] args) {
-		if (logger.isWarnEnabled()) {
-			logger.warn("server starting");
-		}
-
+		logger.warn("server starting");
+		System.out.println("entry");
+		
 		// String hostname = "local";
 		// int port = 1234;
 		// String h = String.format("%s:%d", hostname, port);
