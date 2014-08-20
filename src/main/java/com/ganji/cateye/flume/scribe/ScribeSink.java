@@ -54,9 +54,9 @@ public class ScribeSink extends AbstractSink implements Configurable {
 
 	@Override
 	public void configure(Context context) {
-		String name = context.getString(ScribeSinkConstants.CONFIG_SINK_NAME, "sink-" + hashCode());
-		setName(name);
-		sinkCounter = new SinkCounter(name);
+//		String name = context.getString(ScribeSinkConstants.CONFIG_SINK_NAME, "sink-" + hashCode());
+//		setName(name);
+		sinkCounter = new SinkCounter(getName());
 		batchSize = context.getLong(ScribeSinkConstants.CONFIG_BATCHSIZE, 1L);
 		String clazz = context.getString(ScribeSinkConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
 

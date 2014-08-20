@@ -27,4 +27,7 @@ public final class KestrelSinkConstants {
 	// kestrel queue name
 	public static final String CONFIG_ROUTE_QUEUE = ".queue";
 	
+	@SuppressWarnings("unused")
+	public final int RETRY_INTERVAL = 1 * 1000;
+
 }

@@ -82,6 +82,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			connectionPoolSize = RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE;
 		}
 		this.connectionManager.setPoolSize(connectionPoolSize);
+		LOGGER.info("AbstractMultiThreadRpcSink connectionManager.connectionPoolSize={}", connectionPoolSize);
 	}
 
 	/**

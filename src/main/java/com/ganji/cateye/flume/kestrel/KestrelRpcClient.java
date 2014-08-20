@@ -19,7 +19,6 @@ import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.FlumeException;
-import org.apache.flume.api.AbstractRpcClient;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.slf4j.Logger;
@@ -32,7 +31,6 @@ import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.flume.MessageSerializer;
 import com.ganji.cateye.flume.PlainMessageSerializer;
 import com.ganji.cateye.flume.ScribeSerializer;
-import com.ganji.cateye.flume.scribe.FlumeEventSerializer;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 import com.ganji.cateye.utils.StatsDClientHelper;
 
@@ -53,18 +51,10 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	private String forceCategory = null;
 	private boolean compress = false;
 	private String serializerName = "scribe";
-	@SuppressWarnings("unused")
-	private final int RETRY_INTERVAL = 1 * 1000;
 	private MessageSerializer serializer = null;
 	RouteConfig routes = new RouteConfig();
-	// private List<ByteBuffer> pendingItems = new LinkedList<ByteBuffer>();
 
-	// private int compressMsgBodyOverHowmuch;
-	// private String topic;
-	// private String producerGroup;
-	// public final DefaultMQProducer producer;
 	private StatsDClientHelper stats;
-	// private final Random random = new Random();
 	private KestrelThriftClient client;
 
 	public KestrelRpcClient() {
@@ -79,9 +69,6 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
-			// Message m = new Message("cateye", event.getHeaders().get("category"), event.getBody());
-			// producer.send(m);
-			// ByteBuffer buf = serializer.encodeToByteBuffer(msg, false);
 
 			List<ByteBuffer> items = new ArrayList<ByteBuffer>();
 			items.add(serializer.encodeToByteBuffer(serializer.serialize(event), compress));
@@ -141,7 +128,8 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
 				client.put(e.getKey(), e.getValue(), 0);
 			}
-
+			items.clear();
+			items = null;
 			stats.incrementCounter("producer", events.size());
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
@@ -184,11 +172,14 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			// Do not release this, because this client is not to be used again
 			stateLock.lock();
 			connState = State.DEAD;
-			stats.stop();
-			// producer.shutdown();
+			
 			client.close();
-
-			System.out.println("client close");
+			
+			stats.stop();
+			routes.clear();
+			
+			LOGGER.info("KestrelRpcClient closed.");
+			
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
 				throw (Error) ex;
@@ -355,6 +346,12 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 				}
 			}
 			return ret;
+		}
+		
+		// clear
+		public void clear() {
+			this.routes.clear();
+			this.wildcardCategories.clear();
 		}
 	}
 }

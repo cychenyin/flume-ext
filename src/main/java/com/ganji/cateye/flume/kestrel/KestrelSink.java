@@ -42,7 +42,6 @@ public class KestrelSink extends AbstractMultiThreadRpcSink {
 					KestrelRpcClient.class.getCanonicalName());
 		}
 		// set or override setting here.
-		
 		AbstractMultiThreadRpcClient ret = null;
 		try {
 		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
@@ -50,8 +49,6 @@ public class KestrelSink extends AbstractMultiThreadRpcSink {
 		}catch(Throwable e){
 			System.out.println(e.getMessage());
 		}
-		
-		
 		return ret;
 	}
 }
