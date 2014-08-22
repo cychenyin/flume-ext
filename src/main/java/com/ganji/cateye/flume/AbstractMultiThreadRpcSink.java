@@ -39,14 +39,16 @@ import org.apache.flume.source.avro.AvroSourceProtocol.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ganji.cateye.utils.StatsDClientHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 /**
- * 远程RPC抽象类，封装了远程数据访问的多线程和连接池细节。
- * 注意： 该抽象类能高效工作的前提是时候用的channel在不同线程中返回不同的transaction实例。具体所配参考 channel实现中getTransaction方法和createTransaction方法的机制。
+ * 远程RPC抽象类，封装了远程数据访问的多线程和连接池细节。 注意： 该抽象类能高效工作的前提是时候用的channel在不同线程中返回不同的transaction实例。具体所配参考
+ * channel实现中getTransaction方法和createTransaction方法的机制。
+ * 
  * @author asdf
- *
+ * 
  */
 public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements Configurable {
 
@@ -61,10 +63,11 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	private final AtomicLong threadCounter = new AtomicLong(0);
 	private int connectionPoolSize = 1;
 	private ConnectionPoolManager connectionManager = new ConnectionPoolManager(connectionPoolSize);
+	private StatsDClientHelper stats;
 
 	@Override
 	public void configure(Context context) {
-
+		stats = new StatsDClientHelper();
 		hostname = context.getString("hostname");
 		port = context.getInteger("port");
 
@@ -137,7 +140,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			callTimeoutPool.shutdown();
 			LOGGER.debug("stop 1.1");
 			// connectionPoolSize * SinkRunner.maxBackoffSleep // Default= 5 * 5 = 25 second
-			if (!callTimeoutPool.awaitTermination( 4, TimeUnit.SECONDS)) {
+			if (!callTimeoutPool.awaitTermination(4, TimeUnit.SECONDS)) {
 				LOGGER.debug("stop 1.2");
 				callTimeoutPool.shutdownNow();
 				LOGGER.debug("stop 1.3");
@@ -164,8 +167,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	// the java api now not support future listener register, so, between exactly result and multi thread model, my choice is multi thread.
 	// but in partial do process can return the result of previous tranasaction; and which one? who care!
 	private volatile Status unreliableStatus = Status.READY;
-	
-	protected Status doProcess() throws EventDeliveryException {
+
+	protected Status doProcess() {
 		Status status = Status.READY;
 		Channel channel = getChannel();
 		// 注意， 在同一个线程中， channel.getTransaction()多次调用返回相同的示例
@@ -202,22 +205,31 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			}
 
 			transaction.commit();
+			stats.incrementCounter(getName(), size);
 			sinkCounter.addToEventDrainSuccessCount(size);
 
 		} catch (Throwable t) {
 			transaction.rollback();
+			stats.incrementCounter(getName()+"_rollbacktime", 1);
+			// 因为在线程内容部，所以吃掉所有的异常
 			if (t instanceof Error) {
-				throw (Error) t;
+				LOGGER.error(String.format("Rpc Sink %s fail to send event, client=%s", getName(), client.getName()), t);
+				// throw (Error) t;
 			} else if (t instanceof ChannelException) {
-				LOGGER.error(String.format("Rpc Sink %s Unable to get event from channel %s. Exception follows.", getName() ,channel.getName()), t);
+				LOGGER.error(
+						String.format("Rpc Sink %s Unable to get event from channel %s. Exception follows.", getName(), channel.getName()),
+						t);
 				status = Status.BACKOFF;
 			} else {
-				if (client != null)
-					this.connectionManager.destroy(client);
-				throw new EventDeliveryException("Failed to send events. ", t);
+				// 这种情况下可能是Client出问题导致的，销毁当前client
+				LOGGER.warn(String.format("Rpc Sink %s fail to send event, client=%s", getName(), client.getName()), t);
+				this.connectionManager.destroy(client);
+				client = null;
+				// throw new EventDeliveryException("Failed to send events. ", t);
 			}
 		} finally {
 			transaction.close();
+			// 如果已经destroy，已经没必要再做checkin
 			if (client != null) {
 				this.connectionManager.checkIn(client);
 			}
@@ -237,7 +249,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			});
 			return unreliableStatus;
 		} else {
-			// System.out.println("getTaskCount=" + callTimeoutPool.getTaskCount() + " getActiveCount=" + callTimeoutPool.getActiveCount() );
+			// System.out.println("getTaskCount=" + callTimeoutPool.getTaskCount() + " getActiveCount=" + callTimeoutPool.getActiveCount()
+			// );
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
@@ -275,7 +288,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 					ret = initializeRpcClient(clientProps);
 					currentPoolSize++;
 					checkedOutClients.add(ret);
-					LOGGER.warn("{} add new rpc client. conn pool currentPoolSize={},maxPoolSize={}", getName(), currentPoolSize, maxPoolSize);
+					LOGGER.warn("{} add new rpc client. conn pool currentPoolSize={},maxPoolSize={}", getName(), currentPoolSize,
+							maxPoolSize);
 					return ret;
 				}
 				while (availableClients.isEmpty()) {
@@ -304,7 +318,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		public void destroy(AbstractMultiThreadRpcClient client) {
 			poolLock.lock();
 			try {
-				LOGGER.warn("{} remove rpc client. client.id={}. currentPoolSize={}", getName(), client.getName(), currentPoolSize);
+				LOGGER.warn("{} removing rpc client. client.id={}. currentPoolSize={}", getName(), client.getName(), currentPoolSize);
 				if (checkedOutClients.remove(client))
 					currentPoolSize--;
 			} finally {

@@ -55,14 +55,12 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 	private String serializerName = "scribe";
 	private MessageSerializer serializer = null;
 
-	private StatsDClientHelper stats;
 	private scribe.Client client;
 	private TTransport transport;
 
 	public ScribeRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
-		stats = new StatsDClientHelper();
 	}
 
 	@Override
@@ -115,7 +113,7 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 				logger.warn("Request timeout specified less than 1s. Using default value instead.");
 				requestTimeout = RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS;
 			}
-			
+
 			try {
 				logger.warn("scribeSink.host={} port={}", hostname, port);
 				transport = new TFramedTransport(new TSocket(new Socket(hostname, port)));
@@ -125,7 +123,7 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 				logger.error("Unable to create Thrift Transport, host=" + hostname + ":port=" + port, ex);
 				throw new RuntimeException(ex);
 			}
-			
+
 			connState = State.READY;
 		} catch (Throwable ex) {
 			// Failed to configure, kill the client.
@@ -153,9 +151,7 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			items.add(serializer.serialize(event));
 			ResultCode resultCode = client.Log(items);
 
-			if (resultCode.equals(ResultCode.OK) )
-				stats.incrementCounter("producer", 1);
-			else
+			if (!resultCode.equals(ResultCode.OK) )
 				throw new Exception("scribe client return retry later");
 		} catch (Throwable e) {
 			if (e instanceof ExecutionException) {
@@ -189,13 +185,10 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			}
 			ResultCode resultCode = client.Log(items);
 
-			if (resultCode.equals(ResultCode.OK) )
-				stats.incrementCounter("producer", items.size());
-			else
+			if (!resultCode.equals(ResultCode.OK))
 				throw new Exception("scribe client return retry later");
 
 		} catch (Throwable e) {
-			logger.warn("KestrelRpcClient fail to send message", e);
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();
 				if (cause instanceof TException || cause instanceof InterruptedException) {
@@ -229,11 +222,10 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			// Do not release this, because this client is not to be used again
 			stateLock.lock();
 			connState = State.DEAD;
-			
+
 			transport.close();
 			client = null;
-			
-			stats.stop();
+
 			logger.info("SribeRpcClient closed. name={}", name);
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
@@ -250,7 +242,7 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 	@SuppressWarnings("unused")
 	private void dump(Properties properties) {
 		for (Object key : properties.keySet()) {
-			logger.warn("KestrelRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
+			logger.warn("ScribeRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}
 

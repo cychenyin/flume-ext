@@ -34,7 +34,6 @@ import com.ganji.cateye.flume.MessageSerializer;
 import com.ganji.cateye.flume.PlainMessageSerializer;
 import com.ganji.cateye.flume.ScribeSerializer;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
-import com.ganji.cateye.utils.StatsDClientHelper;
 
 /**
  * KestrelRpcClient 保证事务状态
@@ -56,14 +55,12 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	private MessageSerializer serializer = null;
 	RouteConfig routes = new RouteConfig();
 
-	private StatsDClientHelper stats;
 	private KestrelThriftClient client;
 	private TTransport transport;
 	
 	public KestrelRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
-		stats = new StatsDClientHelper();
 	}
 
 	@Override
@@ -76,8 +73,6 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			List<ByteBuffer> items = new ArrayList<ByteBuffer>();
 			items.add(serializer.encodeToByteBuffer(serializer.serialize(event), compress));
 			client.put(forceCategory, items, 0);
-
-			stats.incrementCounter("producer", 1);
 
 		} catch (Throwable e) {
 			// MQClientException RemotingException MQBrokerException InterruptedException
@@ -131,19 +126,14 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			}
 			items.clear();
 			items = null;
-			stats.incrementCounter("producer", events.size());
 		} catch (Throwable e) {
-			// MQClientException RemotingException MQBrokerException InterruptedException
-			LOGGER.warn("KestrelRpcClient fail to send message", e);
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();
-				// if (cause instanceof EventDeliveryException) {
 				if (cause instanceof MQClientException
 						|| cause instanceof RemotingException
 						|| cause instanceof TException
 						|| cause instanceof MQBrokerException
 						|| cause instanceof InterruptedException) {
-					// throw (EventDeliveryException) cause;
 					throw new EventDeliveryException("Send call failure cause of rocketmq exception. ", cause);
 				} else if (cause instanceof TimeoutException) {
 					throw new EventDeliveryException("Send call timeout", cause);
@@ -176,9 +166,8 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			connState = State.DEAD;
 			
 			client.close();
-			
-			stats.stop();
 			routes.clear();
+			
 			LOGGER.info("KestrelRpcClient closed. name={}", name);
 			
 		} catch (Throwable ex) {

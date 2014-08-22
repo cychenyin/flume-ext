@@ -46,7 +46,7 @@ public class ScribeSinkTest {
 
 	@Test
 	public void testProcess() throws Exception {
-		input(10000);
+		input(1);
 		process();
 	}
 	
@@ -74,8 +74,11 @@ public class ScribeSinkTest {
 	public void setUp() throws Exception {
 		Context ctx = new Context();
 		ctx.put(ScribeSinkConsts.CONFIG_SERIALIZER, ScribeSinkConsts.DEFAULT_SERIALIZER);
-		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "192.168.129.213");
-		ctx.put(ScribeSinkConsts.CONFIG_PORT, "31463");
+//		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "192.168.129.213");
+//		ctx.put(ScribeSinkConsts.CONFIG_PORT, "31463");
+		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "10.7.12.120");
+		ctx.put(ScribeSinkConsts.CONFIG_PORT, "9080");
+
 		ctx.put(ScribeSinkConsts.CONFIG_CATEGORY_HEADER_KEY,
 				ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY);
 		ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, "100");
