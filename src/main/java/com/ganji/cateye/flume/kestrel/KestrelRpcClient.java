@@ -63,7 +63,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	public KestrelRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
-		// stats = new StatsDClientHelper();
+		stats = new StatsDClientHelper();
 	}
 
 	@Override

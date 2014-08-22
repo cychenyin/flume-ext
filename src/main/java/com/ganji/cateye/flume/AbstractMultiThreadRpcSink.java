@@ -137,7 +137,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			callTimeoutPool.shutdown();
 			LOGGER.debug("stop 1.1");
 			// connectionPoolSize * SinkRunner.maxBackoffSleep // Default= 5 * 5 = 25 second
-			if (!callTimeoutPool.awaitTermination( this.connectionPoolSize * 5 + 1, TimeUnit.SECONDS)) {
+			if (!callTimeoutPool.awaitTermination( 4, TimeUnit.SECONDS)) {
 				LOGGER.debug("stop 1.2");
 				callTimeoutPool.shutdownNow();
 				LOGGER.debug("stop 1.3");
