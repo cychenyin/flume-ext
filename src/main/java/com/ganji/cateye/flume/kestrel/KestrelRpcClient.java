@@ -21,6 +21,7 @@ import org.apache.flume.EventDeliveryException;
 import org.apache.flume.FlumeException;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +104,6 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 
 	@Override
 	public void appendBatch(final List<Event> events) throws EventDeliveryException {
-		// boolean destroyedClient = false;
 		try {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
@@ -127,6 +127,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			// send
 			for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
 				client.put(e.getKey(), e.getValue(), 0);
+				System.out.println("kestrelllllllllllllllllllllllll put size=" + e.getValue().size());
 			}
 			items.clear();
 			items = null;
@@ -139,6 +140,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 				// if (cause instanceof EventDeliveryException) {
 				if (cause instanceof MQClientException
 						|| cause instanceof RemotingException
+						|| cause instanceof TException
 						|| cause instanceof MQBrokerException
 						|| cause instanceof InterruptedException) {
 					// throw (EventDeliveryException) cause;
@@ -201,7 +203,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	}
 
 	@Override
-	protected void configure(Properties properties) throws FlumeException {
+	public void configure(Properties properties) throws FlumeException {
 		if (isActive()) {
 			throw new FlumeException("Attempting to re-configured an already configured client!");
 		}
@@ -266,9 +268,10 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			client = new KestrelThriftClient(hostname, port);
 			name = String.format("%d@%s:%d", new Random().nextInt(), hostname, port);
 
+			LOGGER.error("KestrelRpcClient readyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
 			connState = State.READY;
 		} catch (Throwable ex) {
-			LOGGER.warn("KestrelRpcClient fail to start producer");
+			LOGGER.warn("KestrelRpcClient ffffffffffffffffffffffffffffffffail to start producer");
 			// Failed to configure, kill the client.
 			connState = State.DEAD;
 			if (ex instanceof Error) {

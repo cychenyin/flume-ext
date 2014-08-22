@@ -18,7 +18,9 @@
  */
 package com.ganji.cateye.flume.scribe;
 
-public class ScribeSinkConstants {
+import com.ganji.cateye.flume.SinkConstants;
+
+public final class ScribeSinkConstants extends SinkConstants {
     /**
      * Maximum number of events the sink should take from the channel per
      * transaction, if available.

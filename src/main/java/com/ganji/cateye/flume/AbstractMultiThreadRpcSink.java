@@ -5,6 +5,7 @@
  * */
 package com.ganji.cateye.flume;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -33,12 +35,19 @@ import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.instrumentation.SinkCounter;
 import org.apache.flume.sink.AbstractSink;
+import org.apache.flume.source.avro.AvroSourceProtocol.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+/**
+ * 远程RPC抽象类，封装了远程数据访问的多线程和连接池细节。
+ * 注意： 该抽象类能高效工作的前提是时候用的channel在不同线程中返回不同的transaction实例。具体所配参考 channel实现中getTransaction方法和createTransaction方法的机制。
+ * @author asdf
+ *
+ */
 public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements Configurable {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMultiThreadRpcSink.class);
@@ -46,15 +55,15 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	private Integer port;
 	private Properties clientProps;
 	private SinkCounter sinkCounter;
-	private ExecutorService callTimeoutPool;
-	
+	// private ExecutorService callTimeoutPool;
+	private ThreadPoolExecutor callTimeoutPool;
+
 	private final AtomicLong threadCounter = new AtomicLong(0);
 	private int connectionPoolSize = 1;
 	private ConnectionPoolManager connectionManager = new ConnectionPoolManager(connectionPoolSize);
 
 	@Override
 	public void configure(Context context) {
-		clientProps = new Properties();
 
 		hostname = context.getString("hostname");
 		port = context.getInteger("port");
@@ -62,6 +71,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		Preconditions.checkState(hostname != null, "No hostname specified");
 		Preconditions.checkState(port != null, "No port specified");
 
+		clientProps = new Properties();
 		clientProps.setProperty(RpcClientConfigurationConstants.CONFIG_HOSTS, "h1");
 		clientProps.setProperty(RpcClientConfigurationConstants.CONFIG_HOSTS_PREFIX +
 				"h1", hostname + ":" + port);
@@ -73,7 +83,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		if (sinkCounter == null) {
 			sinkCounter = new SinkCounter(getName());
 		}
-	
+
 		connectionPoolSize = Integer.parseInt(clientProps.getProperty(
 				RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE,
 				String.valueOf(RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE)));
@@ -82,7 +92,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			connectionPoolSize = RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE;
 		}
 		this.connectionManager.setPoolSize(connectionPoolSize);
-		LOGGER.info("AbstractMultiThreadRpcSink connectionManager.connectionPoolSize={}", connectionPoolSize);
+		LOGGER.info("{} connectionManager.connectionPoolSize={}", getName(), connectionPoolSize);
 	}
 
 	/**
@@ -104,12 +114,12 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	@Override
 	public void start() {
 		LOGGER.info("MultiThread Rpc Starting {}...", this);
-		this.callTimeoutPool = Executors.newFixedThreadPool(4, new ThreadFactory() {
+		callTimeoutPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(this.connectionPoolSize, new ThreadFactory() {
 			@Override
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
-				t.setName("AbstractMultiThreadRpcSink thread - " + String.valueOf(threadCounter.incrementAndGet()));
-				LOGGER.warn("AbstractMultiThreadRpcSink: add new thread. name=" + t.getName());
+				t.setName("AbstractMultiThreadRpcSink_Call_Thread_" + String.valueOf(threadCounter.incrementAndGet()));
+				LOGGER.warn("{} add new thread. thread name={}", getName(), t.getName());
 				return t;
 			}
 		});
@@ -122,25 +132,27 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	public void stop() {
 		LOGGER.info("MultiThread Rpc sink {} stopping...", getName());
 
-		if (connectionManager != null)
-			connectionManager.closeAll();
-			System.out.println(connectionManager.currentPoolSize);
+		LOGGER.info("stop 1");
 		try {
 			callTimeoutPool.shutdown();
-			if (!callTimeoutPool.awaitTermination(2, TimeUnit.SECONDS)) {
+			LOGGER.info("stop 1.1");
+			// connectionPoolSize * SinkRunner.maxBackoffSleep // Default= 5 * 5 = 25 second
+			if (!callTimeoutPool.awaitTermination( this.connectionPoolSize * 5 + 1, TimeUnit.SECONDS)) {
+				LOGGER.info("stop 1.2");
 				callTimeoutPool.shutdownNow();
-				System.out.println("shutdownNow");
+				LOGGER.info("stop 1.3");
 			}
-			System.out.println("shutdown end");
 		} catch (Exception ex) {
-			LOGGER.error("MultiThread Rpc sink Interrupted while waiting for connection reset executor to shut down");
+			LOGGER.error("MultiThread Rpc sink interrupted while waiting for connection reset executor to shut down");
 		}
-		
+		LOGGER.info("stop 2");
+		if (connectionManager != null)
+			connectionManager.closeAll();
 		if (sinkCounter != null)
 			sinkCounter.stop();
-
+		LOGGER.info("stop 3");
 		super.stop();
-
+		LOGGER.info("stop 4");
 		LOGGER.info("MultiThread Rpc sink {} stopped. Metrics: {}", getName(), sinkCounter);
 	}
 
@@ -148,16 +160,18 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	public String toString() {
 		return "RpcSink " + getName() + " { host: " + hostname + ", port: " + port + " }";
 	}
-	
+
 	// the java api now not support future listener register, so, between exactly result and multi thread model, my choice is multi thread.
 	// but in partial do process can return the result of previous tranasaction; and which one? who care!
-	private volatile Status unreliableStatus;
-
-	private Status doProcess() throws EventDeliveryException {
+	private volatile Status unreliableStatus = Status.READY;
+	
+	protected Status doProcess() throws EventDeliveryException {
 		Status status = Status.READY;
 		Channel channel = getChannel();
+		// 注意， 在同一个线程中， channel.getTransaction()多次调用返回相同的示例
 		Transaction transaction = channel.getTransaction();
-
+		System.out.println("doProcess got trans;  sink.hashCode=" + this.hashCode() + " transaction.hashCode()=" + transaction.hashCode()
+				+ " thread=" + Thread.currentThread().getName() + " " + Thread.currentThread().getId());
 		AbstractMultiThreadRpcClient client = null;
 		try {
 			client = connectionManager.checkout();
@@ -166,12 +180,15 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			List<Event> batch = Lists.newLinkedList();
 
 			for (int i = 0; i < client.getBatchSize(); i++) {
+				long start = (new Date()).getTime();
 				Event event = channel.take();
-
+				long end = (new Date()).getTime();
+				if(end - start > 2) {
+					LOGGER.error("take take time {}ms", end - start);
+				}
 				if (event == null) {
 					break;
 				}
-
 				batch.add(event);
 			}
 
@@ -192,10 +209,12 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			}
 
 			transaction.commit();
+			System.out.println("commited; sink.hashCode=" + this.hashCode() + " transaction.hashCode()=" + transaction.hashCode());
 			sinkCounter.addToEventDrainSuccessCount(size);
 
 		} catch (Throwable t) {
 			transaction.rollback();
+			System.out.println("rollbacked; sink.hashCode=" + this.hashCode() + " transaction.hashCode()=" + transaction.hashCode());
 			if (t instanceof Error) {
 				throw (Error) t;
 			} else if (t instanceof ChannelException) {
@@ -203,12 +222,12 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 						" channel " + channel.getName() + ". Exception follows.", t);
 				status = Status.BACKOFF;
 			} else {
-				// destroyConnection();
 				if (client != null)
 					this.connectionManager.destroy(client);
-				throw new EventDeliveryException("Failed to send events", t);
+				throw new EventDeliveryException("Failed to send events. ", t);
 			}
 		} finally {
+			System.out.println("closing transaction. hashCode()=" + transaction.hashCode());
 			transaction.close();
 			if (client != null) {
 				this.connectionManager.checkIn(client);
@@ -218,16 +237,31 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		return status;
 	}
 
+	public void bak() {
+		// By the way, future api in java seems quite stupid.
+
+	}
+
 	@Override
 	public Status process() throws EventDeliveryException {
-		// By the way, future api in java seems quite stupid.
-		callTimeoutPool.submit(new Callable<Status>() {
-			@Override
-			public Status call() throws Exception {
-				return doProcess();
+		// System.out.println("start processing; sink.hashCode=" + this.hashCode() + " thread=" + Thread.currentThread().getName() + " "+ Thread.currentThread().getId());
+		if (callTimeoutPool.getActiveCount() < this.connectionPoolSize) {
+			callTimeoutPool.submit(new Callable<Status>() {
+
+				@Override
+				public Status call() throws Exception {
+					return doProcess();
+				}
+			});
+			return unreliableStatus;
+		} else {
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
 			}
-		});
-		return unreliableStatus;
+			// return Status.BACKOFF;
+			return unreliableStatus;
+		}
 	}
 
 	private class ConnectionPoolManager {
@@ -246,9 +280,10 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			availableClientsCondition = poolLock.newCondition();
 			currentPoolSize = 0;
 		}
-//		public int currentPoolSize(){
-//			return  availableClients.size() + checkedOutClients.size();
-//		}
+
+		// public int currentPoolSize(){
+		// return availableClients.size() + checkedOutClients.size();
+		// }
 		public AbstractMultiThreadRpcClient checkout() throws Exception {
 			AbstractMultiThreadRpcClient ret = null;
 			poolLock.lock();
@@ -257,7 +292,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 					ret = initializeRpcClient(clientProps);
 					currentPoolSize++;
 					checkedOutClients.add(ret);
-					LOGGER.warn("RocketmqRpcClient add new rocketmq client. ={},maxPoolSize={}", currentPoolSize, maxPoolSize);
+					LOGGER.warn("{} add new rpc client. conn pool currentPoolSize={},maxPoolSize={}", getName(), currentPoolSize, maxPoolSize);
 					return ret;
 				}
 				while (availableClients.isEmpty()) {
@@ -286,8 +321,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		public void destroy(AbstractMultiThreadRpcClient client) {
 			poolLock.lock();
 			try {
-				LOGGER.warn("RocketmqRpcClient remove rocketmq client id={}. currentPoolSize={}", client.getName(), currentPoolSize);
-				if(checkedOutClients.remove(client))
+				LOGGER.warn("{} remove rpc client. client.id={}. currentPoolSize={}", getName(), client.getName(), currentPoolSize);
+				if (checkedOutClients.remove(client))
 					currentPoolSize--;
 			} finally {
 				poolLock.unlock();

@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.flume.AbstractMultiThreadRpcSink;
 
-/*// TODO 修改下参数注释
+/**
  * Kestrel sink @see KestrelRpcClient
  * 示例：
  * agent.sinks.statSink.type = com.ganji.cateye.flume.kestrel.KestrelSink

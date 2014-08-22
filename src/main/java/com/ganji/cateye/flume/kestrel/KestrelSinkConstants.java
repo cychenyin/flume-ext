@@ -1,6 +1,8 @@
 package com.ganji.cateye.flume.kestrel;
 
-public final class KestrelSinkConstants {
+import com.ganji.cateye.flume.SinkConstants;
+
+public final class KestrelSinkConstants extends SinkConstants {
 	// batchSize, request-timeout,
 	public final static String CONFIG_HOSTNAME = "hostname";
 	public final static String CONFIG_HOSTNAME_DEFAULT = "127.0.0.1";
