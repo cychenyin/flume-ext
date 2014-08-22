@@ -22,6 +22,7 @@ import org.apache.flume.FlumeException;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,11 +58,12 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 
 	private StatsDClientHelper stats;
 	private KestrelThriftClient client;
-
+	private TTransport transport;
+	
 	public KestrelRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
-		stats = new StatsDClientHelper();
+		// stats = new StatsDClientHelper();
 	}
 
 	@Override
@@ -177,8 +179,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			
 			stats.stop();
 			routes.clear();
-			
-			LOGGER.info("KestrelRpcClient closed.");
+			LOGGER.info("KestrelRpcClient closed. name={}", name);
 			
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
@@ -186,7 +187,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			} else if (ex instanceof RuntimeException) {
 				throw (RuntimeException) ex;
 			}
-			throw new FlumeException("Failed to close RPC client. ", ex);
+			throw new FlumeException("Failed to close SribeRpcClient. ", ex);
 		} finally {
 			stateLock.unlock();
 		}
@@ -212,13 +213,13 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 				hostname = host.getHostName();
 				port = host.getPortNumber();
 			} else {
-				hostname = properties.getProperty(KestrelSinkConstants.CONFIG_HOSTNAME, KestrelSinkConstants.CONFIG_HOSTNAME_DEFAULT);
-				port = Integer.parseInt(properties.getProperty(KestrelSinkConstants.CONFIG_PORT, KestrelSinkConstants.CONFIG_PORT_DEFAULT));
+				hostname = properties.getProperty(KestrelSinkConsts.CONFIG_HOSTNAME, KestrelSinkConsts.DEFAULT_HOSTNAME);
+				port = Integer.parseInt(properties.getProperty(KestrelSinkConsts.CONFIG_PORT, KestrelSinkConsts.CONFIG_PORT_DEFAULT));
 			}
 
 			// serialization
-			serializerName = properties.getProperty(KestrelSinkConstants.CONFIG_SERIALIZER, KestrelSinkConstants.CONFIG_SERIALIZER_DEFAULT);
-			if (serializerName.equalsIgnoreCase(KestrelSinkConstants.CONFIG_SERIALIZER_DEFAULT)) {
+			serializerName = properties.getProperty(KestrelSinkConsts.CONFIG_SERIALIZER, KestrelSinkConsts.DEFAULT_SERIALIZER);
+			if (serializerName.equalsIgnoreCase(KestrelSinkConsts.DEFAULT_SERIALIZER)) {
 				serializer = new ScribeSerializer();
 			}
 			else if (serializerName.equalsIgnoreCase("plain-message")) {
@@ -231,29 +232,29 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 					throw new RuntimeException("invalid serializer specified", ex);
 				}
 			}
-			categoryHeaderKey = properties.getProperty(KestrelSinkConstants.CONFIG_CATEGORY_HEADER
-					, KestrelSinkConstants.CONFIG_CATEGORY_HEADER_DEFAULT);
+			categoryHeaderKey = properties.getProperty(KestrelSinkConsts.CONFIG_CATEGORY_HEADER
+					, KestrelSinkConsts.DEFAULT_CATEGORY_HEADER);
 
 			Context context = new Context();
-			context.put(KestrelSinkConstants.CONFIG_SERIALIZER, serializerName);
-			context.put(KestrelSinkConstants.CONFIG_CATEGORY_HEADER, categoryHeaderKey);
+			context.put(KestrelSinkConsts.CONFIG_SERIALIZER, serializerName);
+			context.put(KestrelSinkConsts.CONFIG_CATEGORY_HEADER, categoryHeaderKey);
 			serializer.configure(context);
 
 			// routes
-			String rs = properties.getProperty(KestrelSinkConstants.CONFIG_ROUTES, "");
+			String rs = properties.getProperty(KestrelSinkConsts.CONFIG_ROUTES, "");
 			if (StringUtils.isEmpty(rs))
 				throw new FlumeException("routes of KestrelRpcClient not configed");
 			String[] arrRoute = rs.split(RouteConfig.SPLITTER);
 			for (String route : arrRoute) {
 				if (route.isEmpty())
 					continue;
-				String prefix = KestrelSinkConstants.CONFIG_ROUTE_PREFIX + route;
-				routes.add(properties.getProperty(prefix + KestrelSinkConstants.CONFIG_ROUTE_CATEGORY),
-						properties.getProperty(prefix + KestrelSinkConstants.CONFIG_ROUTE_QUEUE));
+				String prefix = KestrelSinkConsts.CONFIG_ROUTE_PREFIX + route;
+				routes.add(properties.getProperty(prefix + KestrelSinkConsts.CONFIG_ROUTE_CATEGORY),
+						properties.getProperty(prefix + KestrelSinkConsts.CONFIG_ROUTE_QUEUE));
 			}
 			// sink global
-			batchSize = Integer.parseInt(properties.getProperty(KestrelSinkConstants.CONFIG_BATCHSIZE,
-					KestrelSinkConstants.CONFIG_BATCHSIZE_DEFAULT));
+			batchSize = Integer.parseInt(properties.getProperty(KestrelSinkConsts.CONFIG_BATCHSIZE,
+					KestrelSinkConsts.DEFAULT_BATCHSIZE));
 			requestTimeout = Long.parseLong(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_REQUEST_TIMEOUT,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));

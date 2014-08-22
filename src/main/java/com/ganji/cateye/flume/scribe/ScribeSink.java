@@ -1,146 +1,49 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
  */
+
 package com.ganji.cateye.flume.scribe;
 
-import org.apache.flume.Channel;
-import org.apache.flume.Context;
-import org.apache.flume.Event;
-import org.apache.flume.EventDeliveryException;
-import org.apache.flume.Transaction;
-import org.apache.flume.conf.Configurable;
-import org.apache.flume.instrumentation.SinkCounter;
-import org.apache.flume.sink.AbstractSink;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
+import java.util.Properties;
+
+import org.apache.flume.api.RpcClient;
+import org.apache.flume.api.RpcClientConfigurationConstants;
+import org.apache.flume.api.RpcClientFactory;
+import org.apache.flume.sink.AbstractRpcSink;
+import org.apache.flume.sink.NullSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-import com.ganji.cateye.flume.scribe.thrift.*;
+
+import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
+import com.ganji.cateye.flume.AbstractMultiThreadRpcSink;
 
 /**
- * Synchronous Sink that forwards messages to a scribe listener.
- * <p>
- * The use case for this sink is to maintain backward compatibility with scribe consumers when there is a desire to migrate from Scribe
- * middleware to FlumeNG.
+ * Scribe sink @see ScribeRpcClient
+ * 示例：
+ * agent.sinks.statSink.type = com.ganji.cateye.flume.kestrel.KestrelSink
+ * agent.sinks.statSink.channel = c2 
+ * agent.sinks.statSink.batchSize = 50
+ * agent.sinks.statSink.hostname = 10.7.5.31
+ * agent.sinks.statSink.port = 2229
+ * agent.sinks.statSink.serializer = scribe
+ * agent.sinks.statSink.scribe.category.header = category
  */
-public class ScribeSink extends AbstractSink implements Configurable {
+public class ScribeSink extends AbstractMultiThreadRpcSink {
 	private static final Logger logger = LoggerFactory.getLogger(ScribeSink.class);
-	private long batchSize = 1;
-	private SinkCounter sinkCounter;
-	private FlumeEventSerializer serializer;
-	private scribe.Client client;
-	private TTransport transport;
 
 	@Override
-	public void configure(Context context) {
-//		String name = context.getString(ScribeSinkConstants.CONFIG_SINK_NAME, "sink-" + hashCode());
-//		setName(name);
-		sinkCounter = new SinkCounter(getName());
-		batchSize = context.getLong(ScribeSinkConstants.CONFIG_BATCHSIZE, 1L);
-		String clazz = context.getString(ScribeSinkConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
-
+	protected AbstractMultiThreadRpcClient initializeRpcClient(Properties props) {
+		if (!props.containsKey(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE)) {
+			props.setProperty(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE,
+					ScribeRpcClient.class.getCanonicalName());
+		}
+		// set or override setting here.
+		AbstractMultiThreadRpcClient ret = null;
 		try {
-			serializer = (FlumeEventSerializer) Class.forName(clazz).newInstance();
-		} catch (Exception ex) {
-			logger.warn("Defaulting to EventToLogEntrySerializer", ex);
-			serializer = new EventToLogEntrySerializer();
-		} finally {
-			serializer.configure(context);
+		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
+		
+		}catch(Throwable e){
+			logger.error("fail to create kestrel rpc client.", e);
 		}
-
-		String host = context.getString(ScribeSinkConstants.CONFIG_SCRIBE_HOST);
-		int port = context.getInteger(ScribeSinkConstants.CONFIG_SCRIBE_PORT);
-
-		try {
-			logger.warn("scribeSink.host={} port={}", host, port);
-			transport = new TFramedTransport(new TSocket(new Socket(host, port)));
-			logger.warn("scribeSink has created transport");
-		} catch (Exception ex) {
-			logger.error("Unable to create Thrift Transport, host=" + host + ":port=" + port, ex);
-			throw new RuntimeException(ex);
-		}
-	}
-
-	@Override
-	public synchronized void start() {
-		super.start();
-		client = new scribe.Client(new TBinaryProtocol(transport, false, false));
-		sinkCounter.start();
-	}
-
-	@Override
-	public synchronized void stop() {
-		super.stop();
-		sinkCounter.stop();
-		transport.close();
-		client = null;
-	}
-
-	@Override
-	public Status process() throws EventDeliveryException {
-		logger.debug("start processing");
-
-		Status status = Status.READY;
-		Channel channel = getChannel();
-		List<LogEntry> eventList = new ArrayList<LogEntry>();
-		Transaction transaction = channel.getTransaction();
-		transaction.begin();
-
-		for (int i = 0; i < batchSize; i++) {
-			Event event = channel.take();
-			if (event == null) {
-				status = Status.BACKOFF;
-				sinkCounter.incrementBatchUnderflowCount();
-				break;
-			}
-			else {
-				eventList.add(serializer.serialize(event));
-			}
-		}
-
-		sendEvents(transaction, eventList);
-		return status;
-	}
-
-	private void sendEvents(Transaction transaction, List<LogEntry> eventList)
-			throws EventDeliveryException {
-		try {
-			sinkCounter.addToEventDrainAttemptCount(eventList.size());
-//			logger.warn("before client.log. size=" + eventList.size());
-			// ResultCode rc = client.Log(eventList);
-			ResultCode rc = eventList.size() > 0 ? client.Log(eventList) : ResultCode.OK;
-//			logger.warn("after client.log. result=" + rc.name());
-			if (rc.equals(ResultCode.OK)) {
-				transaction.commit();
-				sinkCounter.addToEventDrainSuccessCount(eventList.size());
-			}
-		} catch (Throwable e) {
-			transaction.rollback();
-			logger.error("exception while processing in Scribe Sink", e);
-			throw new EventDeliveryException("Failed to send message", e);
-		} finally {
-			transaction.close();
-		}
+		return ret;
 	}
 }

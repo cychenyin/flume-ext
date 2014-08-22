@@ -15,8 +15,8 @@ import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.ganji.cateye.flume.rocketmq.RocketmqSink;
-import com.ganji.cateye.flume.scribe.EventToLogEntrySerializer;
-import com.ganji.cateye.flume.scribe.ScribeSinkConstants;
+import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
+import com.ganji.cateye.flume.scribe.simple.EventToLogEntrySerializer;
 import com.ganji.cateye.utils.Stats;
 
 public class Entry {
@@ -48,16 +48,10 @@ public class Entry {
 
 	private static Context createContext() {
 		Context ctx = new Context();
-        ctx.put(ScribeSinkConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_HOST, "127.0.0.1");
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_PORT, "1463");
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER, ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY);
-//        sink.configure(ctx);
-//        PseudoTxnMemoryChannel c = new PseudoTxnMemoryChannel();
-//        c.configure(ctx);
-//        c.start();
-//        sink.setChannel(c);
-//        sink.start();
+        ctx.put(ScribeSinkConsts.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
+        ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "127.0.0.1");
+        ctx.put(ScribeSinkConsts.CONFIG_PORT, "1463");
+        ctx.put(ScribeSinkConsts.CONFIG_CATEGORY_HEADER_KEY, ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY);
         return ctx;
 	}
 	private static Stats stat = new Stats();

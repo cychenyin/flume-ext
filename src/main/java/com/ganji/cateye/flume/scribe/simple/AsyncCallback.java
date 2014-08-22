@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.ganji.cateye.flume.scribe;
+package com.ganji.cateye.flume.scribe.simple;
 
 import org.apache.thrift.async.AsyncMethodCallback;
 

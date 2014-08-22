@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.ganji.cateye.flume.scribe;
+package com.ganji.cateye.flume.scribe.simple;
 
+import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 import com.ganji.cateye.flume.scribe.thrift.*;
 import com.ganji.cateye.flume.scribe.thrift.scribe.AsyncClient;
 import com.google.common.base.Throwables;
@@ -62,11 +63,11 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
 
     @Override
     public void configure(Context context) {
-        String name = context.getString(ScribeSinkConstants.CONFIG_SINK_NAME, "sink-" + hashCode());
+        String name = context.getString(ScribeSinkConsts.CONFIG_SINK_NAME, "sink-" + hashCode());
         setName(name);
         sinkCounter = new SinkCounter(name);
-        batchSize = context.getLong(ScribeSinkConstants.CONFIG_BATCHSIZE, 1L);
-        String clazz = context.getString(ScribeSinkConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
+        batchSize = context.getLong(ScribeSinkConsts.CONFIG_BATCHSIZE, 1L);
+        String clazz = context.getString(ScribeSinkConsts.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
 
         try {
             serializer = (FlumeEventSerializer)Class.forName(clazz).newInstance();
@@ -79,9 +80,9 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
             serializer.configure(context);
         }
 
-        String host = context.getString(ScribeSinkConstants.CONFIG_SCRIBE_HOST);
-        int port = context.getInteger(ScribeSinkConstants.CONFIG_SCRIBE_PORT);
-        timeout = context.getInteger(ScribeSinkConstants.CONFIG_SCRIBE_TIMEOUT, 1000);
+        String host = context.getString(ScribeSinkConsts.CONFIG_HOSTNAME);
+        int port = context.getInteger(ScribeSinkConsts.CONFIG_PORT);
+        timeout = context.getInteger(ScribeSinkConsts.CONFIG_SCRIBE_TIMEOUT, 1000);
 
         try {
             transport = new TNonblockingSocket(host, port);

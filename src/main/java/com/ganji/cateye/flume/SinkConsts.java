@@ -6,6 +6,6 @@ package com.ganji.cateye.flume;
  * @author asdf
  *
  */
-public class SinkConstants {
+public class SinkConsts {
 
 }

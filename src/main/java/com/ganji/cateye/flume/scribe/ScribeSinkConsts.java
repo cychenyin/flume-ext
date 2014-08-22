@@ -18,18 +18,23 @@
  */
 package com.ganji.cateye.flume.scribe;
 
-import com.ganji.cateye.flume.SinkConstants;
+import com.ganji.cateye.flume.SinkConsts;
 
-public final class ScribeSinkConstants extends SinkConstants {
+public final class ScribeSinkConsts extends SinkConsts {
     /**
      * Maximum number of events the sink should take from the channel per
      * transaction, if available.
      */
     public static final String CONFIG_BATCHSIZE = "batchSize";
+    public static final String DEFAULT_BATCHSIZE = "100";
+    
     /**
      * The fully qualified class name of the serializer the sink should use.
      */
     public static final String CONFIG_SERIALIZER = "serializer";
+    public static final String DEFAULT_SERIALIZER = "scribe";
+    public static final String PLAIN_MESSAGE_SERIALIZER = "scribe";
+    
     /**
      * The name the sink should use.
      */
@@ -37,11 +42,13 @@ public final class ScribeSinkConstants extends SinkConstants {
     /**
      * Scribe host to send to.
      */
-    public static final String CONFIG_SCRIBE_HOST = "hostname";
+    public static final String CONFIG_HOSTNAME = "hostname";
+    public static final String DEFAULT_HOSTNAME = "127.0.0.1";
     /**
      * Scribe port to connect to.
      */
-    public static final String CONFIG_SCRIBE_PORT = "port";
+    public static final String CONFIG_PORT = "port";
+    public static final String DEFAULT_PORT = "11463";
     /**
      * Scribe port to connect to.
      */
@@ -49,12 +56,13 @@ public final class ScribeSinkConstants extends SinkConstants {
     /**
      * Flume Header Key that maps to a Scribe Category.
      */
-    public static final String CONFIG_SCRIBE_CATEGORY_HEADER = "scribe.category.header";
+    public static final String CONFIG_CATEGORY_HEADER_KEY = "scribe.category.header";
     /**
      * Flume Header Value that maps to a Scribe Category, default value of key CONFIG_SCRIBE_CATEGORY_HEADER.
      */
-    public static final String CONFIG_SCRIBE_CATEGORY = "category";
+    public static final String DEFAULT_CATEGORY_HEADER_KEY = "category";
+	
 
-    private ScribeSinkConstants() {
+    private ScribeSinkConsts() {
     }
 }

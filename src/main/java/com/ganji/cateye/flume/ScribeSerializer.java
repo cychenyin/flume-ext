@@ -10,7 +10,7 @@ import org.apache.thrift.transport.TMemoryBuffer;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
 
-import com.ganji.cateye.flume.kestrel.KestrelSinkConstants;
+import com.ganji.cateye.flume.kestrel.KestrelSinkConsts;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 
 public class ScribeSerializer implements MessageSerializer {
@@ -53,8 +53,8 @@ public class ScribeSerializer implements MessageSerializer {
 
 	@Override
 	public void configure(Context context) {
-		categoryHeaderKey = context.getString(KestrelSinkConstants.CONFIG_CATEGORY_HEADER,
-				KestrelSinkConstants.CONFIG_CATEGORY_HEADER_DEFAULT);
+		categoryHeaderKey = context.getString(KestrelSinkConsts.CONFIG_CATEGORY_HEADER,
+				KestrelSinkConsts.DEFAULT_CATEGORY_HEADER);
 	}
 
 	@Override

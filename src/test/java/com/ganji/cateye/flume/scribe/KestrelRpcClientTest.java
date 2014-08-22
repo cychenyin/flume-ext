@@ -16,7 +16,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.ganji.cateye.flume.kestrel.KestrelRpcClient;
-import com.ganji.cateye.flume.kestrel.KestrelSinkConstants;
+import com.ganji.cateye.flume.kestrel.KestrelSinkConsts;
 import com.google.common.base.Charsets;
 
 /**
@@ -61,12 +61,12 @@ public class KestrelRpcClientTest {
 		
 
 		Context ctx = new Context();
-		ctx.put(KestrelSinkConstants.CONFIG_HOSTNAME, "10.7.5.31");
-		ctx.put(KestrelSinkConstants.CONFIG_PORT, "2229");
-		ctx.put(KestrelSinkConstants.CONFIG_SERIALIZER, "scribe");
-		ctx.put(KestrelSinkConstants.CONFIG_BATCHSIZE, String.valueOf(100));
+		ctx.put(KestrelSinkConsts.CONFIG_HOSTNAME, "10.7.5.31");
+		ctx.put(KestrelSinkConsts.CONFIG_PORT, "2229");
+		ctx.put(KestrelSinkConsts.CONFIG_SERIALIZER, "scribe");
+		ctx.put(KestrelSinkConsts.CONFIG_BATCHSIZE, String.valueOf(100));
 
-		ctx.put(KestrelSinkConstants.CONFIG_ROUTES, "q1 q2");
+		ctx.put(KestrelSinkConsts.CONFIG_ROUTES, "q1 q2");
 		ctx.put("route.q1.categories", "cateye.a* cateye.x cateye.y*");
 		ctx.put("route.q1.queue", "flume5");
 

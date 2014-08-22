@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.ganji.cateye.flume.scribe;
+package com.ganji.cateye.flume.scribe.simple;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -25,6 +25,7 @@ import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
 
+import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,9 +54,9 @@ public class EventToLogEntrySerializer implements FlumeEventSerializer {
 
 	@Override
 	public void configure(Context context) {
-		scribeCategoryHeaderKey = context.getString(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER);
+		scribeCategoryHeaderKey = context.getString(ScribeSinkConsts.CONFIG_CATEGORY_HEADER_KEY);
 		if (scribeCategoryHeaderKey == null) {
-			throw new RuntimeException(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER + " is not configured.");
+			throw new RuntimeException(ScribeSinkConsts.CONFIG_CATEGORY_HEADER_KEY + " is not configured.");
 		}
 	}
 

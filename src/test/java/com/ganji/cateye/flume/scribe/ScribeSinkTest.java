@@ -26,6 +26,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ganji.cateye.flume.scribe.simple.EventToLogEntrySerializer;
+import com.ganji.cateye.flume.scribe.simple.ScribeSink;
 import com.google.common.base.Charsets;
 
 /**
@@ -38,7 +40,7 @@ public class ScribeSinkTest {
     @Test
     public void testProcess() throws Exception {
         Event e = new SimpleEvent();
-        e.getHeaders().put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY, "c1");
+        e.getHeaders().put(ScribeSinkConsts.CONFIG_SCRIBE_CATEGORY, "c1");
         e.setBody("This is test ".getBytes(Charsets.UTF_8));
         sink.getChannel().put(e);
         sink.process();
@@ -48,12 +50,12 @@ public class ScribeSinkTest {
     @Before
     public void setUp() throws Exception {
         Context ctx = new Context();
-        ctx.put(ScribeSinkConstants.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_HOST, "192.168.129.213");
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_PORT, "31463");
-        ctx.put(ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY_HEADER,
-                ScribeSinkConstants.CONFIG_SCRIBE_CATEGORY);
-        ctx.put(ScribeSinkConstants.CONFIG_BATCHSIZE, "10");
+        ctx.put(ScribeSinkConsts.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
+        ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "192.168.129.213");
+        ctx.put(ScribeSinkConsts.CONFIG_PORT, "31463");
+        ctx.put(ScribeSinkConsts.CONFIG_CATEGORY_HEADER_KEY,
+                ScribeSinkConsts.CONFIG_SCRIBE_CATEGORY);
+        ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, "10");
         
         
         sink.configure(ctx);
