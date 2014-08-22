@@ -108,7 +108,6 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			if (!isActive()) {
 				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
 			}
-			LOGGER.info("KestrelRpcClient: appendBatch size={}", events.size());
 			// group log by route config
 			Map<String, List<ByteBuffer>> items = new HashMap<String, List<ByteBuffer>>();
 			for (Event event : events) {

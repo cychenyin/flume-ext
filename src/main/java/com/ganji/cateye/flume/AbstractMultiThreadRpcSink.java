@@ -119,7 +119,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
 				t.setName("AbstractMultiThreadRpcSink_Call_Thread_" + String.valueOf(threadCounter.incrementAndGet()));
-				LOGGER.warn("{} add new thread. thread name={}", getName(), t.getName());
+				LOGGER.info("{} add new thread. thread name={}", getName(), t.getName());
 				return t;
 			}
 		});
@@ -132,27 +132,27 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	public void stop() {
 		LOGGER.info("MultiThread Rpc sink {} stopping...", getName());
 
-		LOGGER.info("stop 1");
+		LOGGER.debug("stop 1");
 		try {
 			callTimeoutPool.shutdown();
-			LOGGER.info("stop 1.1");
+			LOGGER.debug("stop 1.1");
 			// connectionPoolSize * SinkRunner.maxBackoffSleep // Default= 5 * 5 = 25 second
 			if (!callTimeoutPool.awaitTermination( this.connectionPoolSize * 5 + 1, TimeUnit.SECONDS)) {
-				LOGGER.info("stop 1.2");
+				LOGGER.debug("stop 1.2");
 				callTimeoutPool.shutdownNow();
-				LOGGER.info("stop 1.3");
+				LOGGER.debug("stop 1.3");
 			}
 		} catch (Exception ex) {
 			LOGGER.error("MultiThread Rpc sink interrupted while waiting for connection reset executor to shut down");
 		}
-		LOGGER.info("stop 2");
+		LOGGER.debug("stop 2");
 		if (connectionManager != null)
 			connectionManager.closeAll();
 		if (sinkCounter != null)
 			sinkCounter.stop();
-		LOGGER.info("stop 3");
+		LOGGER.debug("stop 3");
 		super.stop();
-		LOGGER.info("stop 4");
+		LOGGER.debug("stop 4");
 		LOGGER.info("MultiThread Rpc sink {} stopped. Metrics: {}", getName(), sinkCounter);
 	}
 
@@ -180,12 +180,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			List<Event> batch = Lists.newLinkedList();
 
 			for (int i = 0; i < client.getBatchSize(); i++) {
-				long start = (new Date()).getTime();
 				Event event = channel.take();
-				long end = (new Date()).getTime();
-				if(end - start > 2) {
-					LOGGER.error("take take time {}ms", end - start);
-				}
 				if (event == null) {
 					break;
 				}
@@ -218,8 +213,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			if (t instanceof Error) {
 				throw (Error) t;
 			} else if (t instanceof ChannelException) {
-				LOGGER.error("Rpc Sink " + getName() + ": Unable to get event from" +
-						" channel " + channel.getName() + ". Exception follows.", t);
+				LOGGER.error("Rpc Sink " + getName() + ": Unable to get event from channel " + channel.getName() + ". Exception follows.", t);
 				status = Status.BACKOFF;
 			} else {
 				if (client != null)
