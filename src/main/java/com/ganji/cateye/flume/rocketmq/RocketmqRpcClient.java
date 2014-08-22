@@ -151,7 +151,6 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 			connState = State.DEAD;
 			stats.stop();
 			producer.shutdown();
-			System.out.println("client close");
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
 				throw (Error) ex;
@@ -167,7 +166,6 @@ public class RocketmqRpcClient extends AbstractMultiThreadRpcClient {
 	@SuppressWarnings("unused")
 	private void dump(Properties properties) {
 		for (Object key : properties.keySet()) {
-			// System.out.println(properties.getProperty(key.toString()));
 			LOGGER.warn("RocketmqRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}

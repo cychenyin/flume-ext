@@ -170,8 +170,6 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		Channel channel = getChannel();
 		// 注意， 在同一个线程中， channel.getTransaction()多次调用返回相同的示例
 		Transaction transaction = channel.getTransaction();
-		System.out.println("doProcess got trans;  sink.hashCode=" + this.hashCode() + " transaction.hashCode()=" + transaction.hashCode()
-				+ " thread=" + Thread.currentThread().getName() + " " + Thread.currentThread().getId());
 		AbstractMultiThreadRpcClient client = null;
 		try {
 			client = connectionManager.checkout();
@@ -204,16 +202,14 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			}
 
 			transaction.commit();
-			System.out.println("commited; sink.hashCode=" + this.hashCode() + " transaction.hashCode()=" + transaction.hashCode());
 			sinkCounter.addToEventDrainSuccessCount(size);
 
 		} catch (Throwable t) {
 			transaction.rollback();
-			System.out.println("rollbacked; sink.hashCode=" + this.hashCode() + " transaction.hashCode()=" + transaction.hashCode());
 			if (t instanceof Error) {
 				throw (Error) t;
 			} else if (t instanceof ChannelException) {
-				LOGGER.error("Rpc Sink " + getName() + ": Unable to get event from channel " + channel.getName() + ". Exception follows.", t);
+				LOGGER.error(String.format("Rpc Sink %s Unable to get event from channel %s. Exception follows.", getName() ,channel.getName()), t);
 				status = Status.BACKOFF;
 			} else {
 				if (client != null)
@@ -221,7 +217,6 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 				throw new EventDeliveryException("Failed to send events. ", t);
 			}
 		} finally {
-			System.out.println("closing transaction. hashCode()=" + transaction.hashCode());
 			transaction.close();
 			if (client != null) {
 				this.connectionManager.checkIn(client);
@@ -231,14 +226,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		return status;
 	}
 
-	public void bak() {
-		// By the way, future api in java seems quite stupid.
-
-	}
-
 	@Override
 	public Status process() throws EventDeliveryException {
-		// System.out.println("start processing; sink.hashCode=" + this.hashCode() + " thread=" + Thread.currentThread().getName() + " "+ Thread.currentThread().getId());
 		if (callTimeoutPool.getActiveCount() < this.connectionPoolSize) {
 			callTimeoutPool.submit(new Callable<Status>() {
 

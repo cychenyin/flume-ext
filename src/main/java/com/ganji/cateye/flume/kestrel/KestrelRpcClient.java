@@ -126,7 +126,6 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			// send
 			for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
 				client.put(e.getKey(), e.getValue(), 0);
-				System.out.println("kestrelllllllllllllllllllllllll put size=" + e.getValue().size());
 			}
 			items.clear();
 			items = null;
@@ -196,7 +195,6 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	@SuppressWarnings("unused")
 	private void dump(Properties properties) {
 		for (Object key : properties.keySet()) {
-			// System.out.println(properties.getProperty(key.toString()));
 			LOGGER.warn("KestrelRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}

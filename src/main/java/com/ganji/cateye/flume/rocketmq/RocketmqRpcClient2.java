@@ -161,7 +161,6 @@ public class RocketmqRpcClient2 extends AbstractRpcClient {
 
 	private void dump(Properties properties) {
 		for (Object key : properties.keySet()) {
-			// System.out.println(properties.getProperty(key.toString()));
 			LOGGER.warn("RocketmqRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}

@@ -46,7 +46,7 @@ public class RocketmqSink extends AbstractMultiThreadRpcSink {
 		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
 		
 		}catch(Throwable e){
-			System.out.println(e.getMessage());
+			logger.error("fail to create rocket rpc client", e);
 		}
 		
 		

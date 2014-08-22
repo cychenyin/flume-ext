@@ -47,7 +47,7 @@ public class KestrelSink extends AbstractMultiThreadRpcSink {
 		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
 		
 		}catch(Throwable e){
-			System.out.println(e.getMessage());
+			logger.error("fail to create kestrel rpc client.", e);
 		}
 		return ret;
 	}
