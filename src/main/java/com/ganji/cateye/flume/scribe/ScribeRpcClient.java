@@ -76,7 +76,7 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 				hostname = host.getHostName();
 				port = host.getPortNumber();
 			} else {
-				hostname = properties.getProperty(ScribeSinkConsts.DEFAULT_HOSTNAME, ScribeSinkConsts.DEFAULT_HOSTNAME);
+				hostname = properties.getProperty(ScribeSinkConsts.CONFIG_HOSTNAME, ScribeSinkConsts.DEFAULT_HOSTNAME);
 				port = Integer.parseInt(properties.getProperty(ScribeSinkConsts.CONFIG_PORT, ScribeSinkConsts.DEFAULT_PORT));
 			}
 			name = String.format("%d@%s:%d", new Random().nextInt(), hostname, port);
@@ -141,35 +141,10 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 
 	@Override
 	public void append(Event event) throws EventDeliveryException {
-		
-		try {
-			if (!isActive()) {
-				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
-			}
-
-			List<LogEntry> items = new ArrayList<LogEntry>();
-			items.add(serializer.serialize(event));
-			ResultCode resultCode = client.Log(items);
-
-			if (!resultCode.equals(ResultCode.OK) )
-				throw new Exception("scribe client return retry later");
-		} catch (Throwable e) {
-			if (e instanceof ExecutionException) {
-				Throwable cause = e.getCause();
-				if (cause instanceof TException
-						|| cause instanceof InterruptedException) {
-					throw new EventDeliveryException("Send call failure cause of thrift exception. ", cause);
-				} else if (cause instanceof TimeoutException) {
-					throw new EventDeliveryException("Send call timeout", cause);
-				}
-			}
-			if (e instanceof Error) {
-				throw (Error) e;
-			} else if (e instanceof RuntimeException) {
-				throw (RuntimeException) e;
-			}
-			throw new EventDeliveryException("Failed to send event. ", e);
-		}
+		List<Event> events = new ArrayList<Event>();
+		events.add(event);
+		this.appendBatch(events);
+		throw new EventDeliveryException("not support, use appendBatch please;");
 	}
 
 	@Override
@@ -184,10 +159,12 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 				items.add(serializer.serialize(event));
 			}
 			ResultCode resultCode = client.Log(items);
-
-			if (!resultCode.equals(ResultCode.OK))
+			if (!resultCode.equals(ResultCode.OK)) {
+				logger.error("scribe rpc fail to send event size=" + items.size());
 				throw new Exception("scribe client return retry later");
-
+			} else {
+				logger.info("scribe rpc send successfully. size=" + items.size());
+			}
 		} catch (Throwable e) {
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();

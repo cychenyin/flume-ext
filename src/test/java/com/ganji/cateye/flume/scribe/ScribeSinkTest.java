@@ -67,7 +67,7 @@ public class ScribeSinkTest {
 		}
 		// Status status= sink.doProcess();
 		done = true;
-		System.out.println("process done in tester");
+		System.out.println("process done successfully");
 	}
 
 	@Before
