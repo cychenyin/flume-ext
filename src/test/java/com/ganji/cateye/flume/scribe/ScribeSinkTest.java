@@ -46,27 +46,35 @@ public class ScribeSinkTest {
 
 	@Test
 	public void testProcess() throws Exception {
-		input(1);
-		process();
+		for (int i = 0; i < 100; i++)
+		{
+			input(1000000);
+			process();
+		}
+		done = true;
 	}
-	
+
 	private void input(int count) {
-		for (int i = 0; i < count; i++) {
+		for (int i = 1; i <= count; i++) {
 			Event e = new SimpleEvent();
-			e.getHeaders().put(ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY, "d1");
-			e.setBody(("This is test " + i + "\n").getBytes(Charsets.UTF_8));
+			if ((i % 1000) == 0 || i == count)
+				System.out.println("test data create & set " + i);
+
+			e.getHeaders().put(ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY, "test.d1");
+			e.setBody(("test " + i + "\n").getBytes(Charsets.UTF_8));
 			sink.getChannel().put(e);
 		}
 	}
+
 	private void process() throws EventDeliveryException, InterruptedException {
-		
+
 		Status status = sink.process();
 		while (status != Status.BACKOFF) {
 			status = sink.process();
 			Thread.sleep(10);
 		}
 		// Status status= sink.doProcess();
-		done = true;
+		
 		System.out.println("process done successfully");
 	}
 
@@ -74,20 +82,21 @@ public class ScribeSinkTest {
 	public void setUp() throws Exception {
 		Context ctx = new Context();
 		ctx.put(ScribeSinkConsts.CONFIG_SERIALIZER, ScribeSinkConsts.DEFAULT_SERIALIZER);
-//		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "192.168.129.213");
-//		ctx.put(ScribeSinkConsts.CONFIG_PORT, "31463");
-		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "10.7.12.120");
-		ctx.put(ScribeSinkConsts.CONFIG_PORT, "9080");
+		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "192.168.129.213");
+		ctx.put(ScribeSinkConsts.CONFIG_PORT, "31463");
+		// ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "10.7.12.120");
+		// ctx.put(ScribeSinkConsts.CONFIG_PORT, "9080");
 
 		ctx.put(ScribeSinkConsts.CONFIG_CATEGORY_HEADER_KEY,
 				ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY);
-		ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, "100");
+		ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, "10000");
 
 		ctx.put(RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE, "3");
-		
+
 		sink.configure(ctx);
 		PseudoTxnMemoryChannel c = new PseudoTxnMemoryChannel();
-		ctx.put("capacity", "100000");
+		ctx.put("capacity", "10000000");
+		ctx.put("transactionCapacity", "10000");
 		c.configure(ctx);
 		c.start();
 		sink.setChannel(c);

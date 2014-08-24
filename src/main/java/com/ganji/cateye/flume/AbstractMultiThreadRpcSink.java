@@ -121,7 +121,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			@Override
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
-				t.setName("AbstractMultiThreadRpcSink_Call_Thread_" + String.valueOf(threadCounter.incrementAndGet()));
+				t.setName("RpcSink_Thread_" + String.valueOf(threadCounter.incrementAndGet()));
 				LOGGER.info("{} add new thread. thread name={}", getName(), t.getName());
 				return t;
 			}
