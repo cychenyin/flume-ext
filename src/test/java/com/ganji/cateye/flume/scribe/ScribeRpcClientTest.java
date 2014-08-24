@@ -26,7 +26,7 @@ import com.google.common.base.Charsets;
 public class ScribeRpcClientTest {
 	ScribeRpcClient client;
 	int total = 300000;
-	// @Ignore
+	 @Ignore
 	@Test
 	public void testSend() throws EventDeliveryException {
 		total = 300000;

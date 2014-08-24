@@ -340,7 +340,7 @@ public class KestrelSinkTest {
 		done = true;
 	}
 
-	// @Ignore
+	@Ignore
 	@Test
 	public void testProcessA() throws Exception {
 		input("cateye.a", 1000);

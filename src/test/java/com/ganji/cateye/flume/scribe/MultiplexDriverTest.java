@@ -22,6 +22,7 @@ import org.apache.flume.Event;
 import org.apache.flume.api.RpcClient;
 import org.apache.flume.api.RpcClientFactory;
 import org.apache.flume.event.EventBuilder;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
@@ -32,6 +33,7 @@ import java.util.Map;
  * Not really a unit test
  */
 public class MultiplexDriverTest {
+	@Ignore
     @Test
     public void testIt() throws Exception {
 //        RpcClient rpcClient = RpcClientFactory.getDefaultInstance("127.0.0.1", 4444);
