@@ -2,6 +2,7 @@ package com.ganji.cateye.flume.scribe;
 
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -120,6 +121,10 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 				transport = new TFramedTransport(new TSocket(new Socket(hostname, port)));
 				client = new scribe.Client(new TBinaryProtocol(transport, false, false));
 				logger.warn("scribeSink has created transport succesfully");
+			} catch (SocketException ex) {
+				logger.error("Unable to create Thrift Transport cause of socket exception. sleep 1s then. host=" + hostname + ":port=" + port, ex);
+				Thread.sleep(1000);
+				throw new RuntimeException(ex);
 			} catch (Exception ex) {
 				logger.error("Unable to create Thrift Transport, host=" + hostname + ":port=" + port, ex);
 				throw new RuntimeException(ex);
@@ -147,24 +152,24 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 		this.appendBatch(events);
 		throw new EventDeliveryException("not support, use appendBatch please;");
 	}
-
-	private boolean stub_fired = false;
-	// return true when first "test 2" occur
-	private boolean stub_check(List<Event> events) {
-		if(stub_fired == true) 
-			return false;
-		for(Event event : events) {
-			String body = null;
-			try {
-				body = new String(event.getBody(), "UTF-8").replace("\n", "");
-			} catch (UnsupportedEncodingException e) {
-			}
-			if(body.equals("test 2")) {
-				stub_fired = true;
-			}
-		}
-		return stub_fired;
-	}
+// 用来做测试事务回滚的代码
+//	private boolean stub_fired = false;
+//	// return true when first "test 2" occur
+//	private boolean stub_check(List<Event> events) {
+//		if(stub_fired == true) 
+//			return false;
+//		for(Event event : events) {
+//			String body = null;
+//			try {
+//				body = new String(event.getBody(), "UTF-8").replace("\n", "");
+//			} catch (UnsupportedEncodingException e) {
+//			}
+//			if(body.contains("test 2")) {
+//				stub_fired = true;
+//			}
+//		}
+//		return stub_fired;
+//	}
 	
 	@Override
 	public void appendBatch(final List<Event> events) throws EventDeliveryException {
@@ -177,31 +182,27 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			for (Event event : events) {
 				items.add(serializer.serialize(event));
 			}
+//			if(stub_check(events)) {
+//				throw new EventDeliveryException("test trans rollback");
+//			}
 			
 			ResultCode resultCode = client.Log(items);
-			
-			if(stub_check(events)) {
-				throw new EventDeliveryException("test trans rollback");
-			}
 			if (!resultCode.equals(ResultCode.OK)) {
-				logger.error("scribe rpc fail to send event size=" + items.size());
-//				// TODO ... delete for statement 
-				for (Event event : events) {
-					//items.add(serializer.serialize(event));
-					logger.error("fail. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
-				}
+//				for (Event event : events) {
+//					//items.add(serializer.serialize(event));
+//					logger.error("fail. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
+//				}
 				// 为了防止服务器状态恢复后的突发压力，sleep一个随机的时间; 最大2s= 2000ms
 				Thread.sleep((new Random()).nextInt(2000));
-				
 				throw new Exception("scribe client return try later");
-			} else {
-//				// TODO ... delete for statement
-				for (Event event : events) {
-					//items.add(serializer.serialize(event));
-					logger.warn("done. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
-				}
-				logger.info("scribe rpc send successfully. size=" + items.size());
-			}
+			} 
+//			else {
+////				for (Event event : events) {
+////					//items.add(serializer.serialize(event));
+////					logger.warn("done. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
+////				}
+//				logger.debug("scribe rpc send successfully. size=" + items.size());
+//			}
 		} catch (Throwable e) {
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();
