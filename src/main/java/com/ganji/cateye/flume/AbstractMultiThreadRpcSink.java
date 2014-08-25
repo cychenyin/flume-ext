@@ -171,8 +171,9 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	protected Status doProcess() {
 		Status status = Status.READY;
 		Channel channel = getChannel();
-		// 注意， 在同一个线程中， channel.getTransaction()多次调用返回相同的示例
+		// 注意， 在同一个线程中， channel.getTransaction()多次调用返回相同的示例；不同线程返回不同的
 		Transaction transaction = channel.getTransaction();
+		System.out.println("transaction.class.name=" + transaction.getClass().getName());
 		AbstractMultiThreadRpcClient client = null;
 		try {
 			client = connectionManager.checkout();
@@ -205,12 +206,12 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			}
 
 			transaction.commit();
-			stats.incrementCounter(getName(), size);
+			stats.incrementCounter(getName() + ".commit" , size);
 			sinkCounter.addToEventDrainSuccessCount(size);
 
 		} catch (Throwable t) {
 			transaction.rollback();
-			stats.incrementCounter(getName()+"_rollbacktime", 1);
+			stats.incrementCounter(getName()+".rollbacktimes", 1);
 			// 因为在线程内容部，所以吃掉所有的异常
 			if (t instanceof Error) {
 				LOGGER.error(String.format("Rpc Sink %s fail to send event, client=%s", getName(), client.getName()), t);
@@ -237,7 +238,56 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		unreliableStatus = status;
 		return status;
 	}
-
+	public Status doProcessRollback()throws EventDeliveryException {
+		Status status = Status.READY;
+		Channel channel = getChannel();
+		Transaction transaction = channel.getTransaction();
+		AbstractMultiThreadRpcClient client = null;
+		try {
+			client = connectionManager.checkout();
+			transaction.begin();
+			List<Event> batch = Lists.newLinkedList();
+			for (int i = 0; i < client.getBatchSize(); i++) {
+				Event event = channel.take();
+				if (event == null) {
+					break;
+				}
+				batch.add(event);
+			}
+			if(batch.size() == 0) {
+				status = Status.BACKOFF;
+			}
+			throw new EventDeliveryException("event DO NOT send IN FORCE");
+		} catch (Throwable t) {
+			transaction.rollback();
+			stats.incrementCounter(getName()+".rollbacktimes", 1);
+			// 因为在线程内容部，所以吃掉所有的异常
+			if (t instanceof Error) {
+				LOGGER.error(String.format("Rpc Sink %s fail to send event, client=%s", getName(), client.getName()), t);
+				// throw (Error) t;
+			} else if (t instanceof ChannelException) {
+				LOGGER.error(
+						String.format("Rpc Sink %s Unable to get event from channel %s. Exception follows.", getName(), channel.getName()),
+						t);
+				status = Status.BACKOFF;
+			} else {
+				// 这种情况下可能是Client出问题导致的，销毁当前client
+				LOGGER.warn(String.format("Rpc Sink %s fail to send event, client=%s", getName(), client.getName()), t);
+				this.connectionManager.destroy(client);
+				client = null;
+				// throw new EventDeliveryException("Failed to send events. ", t);
+			}
+		} finally {
+			transaction.close();
+			// 如果已经destroy，已经没必要再做checkin
+			if (client != null) {
+				this.connectionManager.checkIn(client);
+			}
+		}
+		unreliableStatus = status;
+		return status;
+		
+	}
 	@Override
 	public Status process() throws EventDeliveryException {
 		if (callTimeoutPool.getActiveCount() < this.connectionPoolSize) {

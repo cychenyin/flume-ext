@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.flume.Context;
 import org.slf4j.Logger;
@@ -25,6 +26,8 @@ public class Entry {
 	public static void main(String[] args) {
 		System.out.println("entry point");
 		
+		long convert = TimeUnit.MILLISECONDS.convert(20, TimeUnit.SECONDS);
+		System.out.println(convert);
 		// int threadCount = args != null && args.length > 0 ? Integer.parseInt(args[0]) : 4;
 		// int count = args != null && args.length > 1 ? Integer.parseInt(args[1]) : Integer.MAX_VALUE;
 		// produce(threadCount, count);

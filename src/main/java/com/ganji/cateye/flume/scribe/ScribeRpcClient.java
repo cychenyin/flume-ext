@@ -1,5 +1,6 @@
 package com.ganji.cateye.flume.scribe;
 
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -147,6 +148,24 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 		throw new EventDeliveryException("not support, use appendBatch please;");
 	}
 
+	private boolean stub_fired = false;
+	// return true when first "test 2" occur
+	private boolean stub_check(List<Event> events) {
+		if(stub_fired == true) 
+			return false;
+		for(Event event : events) {
+			String body = null;
+			try {
+				body = new String(event.getBody(), "UTF-8").replace("\n", "");
+			} catch (UnsupportedEncodingException e) {
+			}
+			if(body.equals("test 2")) {
+				stub_fired = true;
+			}
+		}
+		return stub_fired;
+	}
+	
 	@Override
 	public void appendBatch(final List<Event> events) throws EventDeliveryException {
 		try {
@@ -158,11 +177,29 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			for (Event event : events) {
 				items.add(serializer.serialize(event));
 			}
+			
 			ResultCode resultCode = client.Log(items);
+			
+			if(stub_check(events)) {
+				throw new EventDeliveryException("test trans rollback");
+			}
 			if (!resultCode.equals(ResultCode.OK)) {
 				logger.error("scribe rpc fail to send event size=" + items.size());
-				throw new Exception("scribe client return retry later");
+//				// TODO ... delete for statement 
+				for (Event event : events) {
+					//items.add(serializer.serialize(event));
+					logger.error("fail. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
+				}
+				// 为了防止服务器状态恢复后的突发压力，sleep一个随机的时间; 最大2s= 2000ms
+				Thread.sleep((new Random()).nextInt(2000));
+				
+				throw new Exception("scribe client return try later");
 			} else {
+//				// TODO ... delete for statement
+				for (Event event : events) {
+					//items.add(serializer.serialize(event));
+					logger.warn("done. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
+				}
 				logger.info("scribe rpc send successfully. size=" + items.size());
 			}
 		} catch (Throwable e) {

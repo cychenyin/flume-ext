@@ -24,9 +24,12 @@ import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.Sink.Status;
+import org.apache.flume.Transaction;
 import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.apache.flume.channel.PseudoTxnMemoryChannel;
+import org.apache.flume.channel.file.FileChannel;
 import org.apache.flume.event.SimpleEvent;
+import org.apache.flume.lifecycle.LifecycleState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,9 +49,9 @@ public class ScribeSinkTest {
 
 	@Test
 	public void testProcess() throws Exception {
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < 1; i++)
 		{
-			input(1000000);
+			input(2);
 			process();
 		}
 		done = true;
@@ -60,20 +63,22 @@ public class ScribeSinkTest {
 			if ((i % 1000) == 0 || i == count)
 				System.out.println("test data create & set " + i);
 
-			e.getHeaders().put(ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY, "test.d1");
+			e.getHeaders().put(ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY, "test.d5");
 			e.setBody(("test " + i + "\n").getBytes(Charsets.UTF_8));
 			sink.getChannel().put(e);
 		}
 	}
 
 	private void process() throws EventDeliveryException, InterruptedException {
-
-		Status status = sink.process();
-		while (status != Status.BACKOFF) {
-			status = sink.process();
-			Thread.sleep(10);
-		}
 		// Status status= sink.doProcess();
+
+		Status status = Status.READY; 
+		do  {
+//			status = sink.doProcessRollback();
+			status = sink.process();
+			
+			Thread.sleep(10);
+		}while (status != Status.BACKOFF);
 		
 		System.out.println("process done successfully");
 	}
@@ -89,19 +94,30 @@ public class ScribeSinkTest {
 
 		ctx.put(ScribeSinkConsts.CONFIG_CATEGORY_HEADER_KEY,
 				ScribeSinkConsts.DEFAULT_CATEGORY_HEADER_KEY);
-		ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, "10000");
+		ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, "1");
 
-		ctx.put(RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE, "3");
+		ctx.put(RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE, "1");
 
 		sink.configure(ctx);
-		PseudoTxnMemoryChannel c = new PseudoTxnMemoryChannel();
-		ctx.put("capacity", "10000000");
-		ctx.put("transactionCapacity", "10000");
-		c.configure(ctx);
-		c.start();
+		PseudoTxnMemoryChannel c = new PseudoTxnMemoryChannel(); 
+		// FileChannel c = new FileChannel();
+		Context cc = new Context();
+		cc.put("checkpointDir", "/data/checkpoint");
+		cc.put("dataDirs", "/data/data");
+		cc.put("capacity", "10000000");
+		cc.put("maxFileSize", "1024000");
+		cc.put("fsyncInterval", "1");
+		c.configure(cc);
+		c.setName("fchannel");
+		c.start();		
+		
 		sink.setChannel(c);
 		sink.setName("scribeTester");
 		sink.start();
+		
+//		Transaction trans = c.getTransaction(); // 这行语句创建了transpaction, 否则c.put会异常退出(原因是c.put中不合理的状态检查代码)。
+//		System.out.println(trans.getClass().getName());
+
 	}
 
 	@After
