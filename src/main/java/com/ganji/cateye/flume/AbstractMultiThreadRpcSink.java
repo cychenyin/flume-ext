@@ -243,8 +243,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		Transaction transaction = channel.getTransaction();
 		AbstractMultiThreadRpcClient client = null;
 		try {
-			client = connectionManager.checkout();
 			transaction.begin();
+			client = connectionManager.checkout();
 			List<Event> batch = Lists.newLinkedList();
 			for (int i = 0; i < client.getBatchSize(); i++) {
 				Event event = channel.take();
