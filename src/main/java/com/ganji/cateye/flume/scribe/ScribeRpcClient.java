@@ -111,22 +111,23 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			requestTimeout = Long.parseLong(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_REQUEST_TIMEOUT,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
-			if (requestTimeout < 1000) {
+			// 请求时长最短1s
+			if (requestTimeout < ScribeSinkConsts.MIN_REQUEST_TIMEOUT_MILLIS) {
 				logger.warn("Request timeout specified less than 1s. Using default value instead.");
 				requestTimeout = RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS;
 			}
 
 			try {
-				logger.warn("scribeSink.host={} port={}", hostname, port);
+				// logger.debug("scribeSink.host={} port={}", hostname, port);
 				transport = new TFramedTransport(new TSocket(new Socket(hostname, port)));
 				client = new scribe.Client(new TBinaryProtocol(transport, false, false));
-				logger.warn("scribeSink has created transport succesfully");
+				// logger.debug("scribeSink has created transport succesfully");
 			} catch (SocketException ex) {
-				logger.error("Unable to create Thrift Transport cause of socket exception. sleep 1s then. host=" + hostname + ":port=" + port, ex);
-				Thread.sleep(1000);
+				logger.warn("Unable to create Thrift Transport cause of socket exception. sleep 1s then. host=" + hostname + ":port=" + port, ex);
+				Thread.sleep(ScribeSinkConsts.MIN_REQUEST_TIMEOUT_MILLIS);
 				throw new RuntimeException(ex);
 			} catch (Exception ex) {
-				logger.error("Unable to create Thrift Transport, host=" + hostname + ":port=" + port, ex);
+				logger.warn("Unable to create Thrift Transport, host=" + hostname + ":port=" + port, ex);
 				throw new RuntimeException(ex);
 			}
 

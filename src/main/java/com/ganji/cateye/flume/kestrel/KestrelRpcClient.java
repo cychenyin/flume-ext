@@ -42,7 +42,7 @@ import com.ganji.cateye.flume.scribe.thrift.LogEntry;
  * 
  */
 public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
-	private static final Logger LOGGER = LoggerFactory.getLogger(KestrelRpcClient.class);
+	private static final Logger logger = LoggerFactory.getLogger(KestrelRpcClient.class);
 	private final Lock stateLock;
 	private State connState;
 	private String hostname;
@@ -168,7 +168,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			client.close();
 			routes.clear();
 			
-			LOGGER.info("KestrelRpcClient closed. name={}", name);
+			logger.info("KestrelRpcClient closed. name={}", name);
 			
 		} catch (Throwable ex) {
 			if (ex instanceof Error) {
@@ -185,7 +185,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	@SuppressWarnings("unused")
 	private void dump(Properties properties) {
 		for (Object key : properties.keySet()) {
-			LOGGER.warn("KestrelRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
+			logger.warn("KestrelRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
 		}
 	}
 
@@ -247,18 +247,18 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			requestTimeout = Long.parseLong(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_REQUEST_TIMEOUT,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
-			if (requestTimeout < 1000) {
-				LOGGER.warn("Request timeout specified less than 1s. Using default value instead.");
+			if (requestTimeout < KestrelSinkConsts.MIN_REQUEST_TIMEOUT_MILLIS) {
+				logger.warn("Request timeout specified less than 1s. Using default value instead.");
 				requestTimeout = RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS;
 			}
 
 			client = new KestrelThriftClient(hostname, port);
 			name = String.format("%d@%s:%d", new Random().nextInt(), hostname, port);
 
-			LOGGER.error("KestrelRpcClient readyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
+			// logger.info("KestrelRpcClient readyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
 			connState = State.READY;
 		} catch (Throwable ex) {
-			LOGGER.warn("KestrelRpcClient ffffffffffffffffffffffffffffffffail to start producer");
+			logger.warn("KestrelRpcClient ffffffffffffffffffffffffffffffffail to start producer");
 			// Failed to configure, kill the client.
 			connState = State.DEAD;
 			if (ex instanceof Error) {

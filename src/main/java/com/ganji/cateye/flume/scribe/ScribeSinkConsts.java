@@ -62,7 +62,4 @@ public final class ScribeSinkConsts extends SinkConsts {
      */
     public static final String DEFAULT_CATEGORY_HEADER_KEY = "category";
 	
-
-    private ScribeSinkConsts() {
-    }
 }
