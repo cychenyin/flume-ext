@@ -173,7 +173,6 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		Channel channel = getChannel();
 		// 注意， 在同一个线程中， channel.getTransaction()多次调用返回相同的示例；不同线程返回不同的
 		Transaction transaction = channel.getTransaction();
-		System.out.println("transaction.class.name=" + transaction.getClass().getName());
 		AbstractMultiThreadRpcClient client = null;
 		try {
 			client = connectionManager.checkout();
@@ -299,8 +298,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			});
 			return unreliableStatus;
 		} else {
-			// System.out.println("getTaskCount=" + callTimeoutPool.getTaskCount() + " getActiveCount=" + callTimeoutPool.getActiveCount()
-			// );
+			// System.out.println("getTaskCount=" + callTimeoutPool.getTaskCount() + " getActiveCount=" + callTimeoutPool.getActiveCount());
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
