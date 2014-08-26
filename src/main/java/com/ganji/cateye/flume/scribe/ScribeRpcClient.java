@@ -196,13 +196,13 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 				Thread.sleep((new Random()).nextInt(2000));
 				throw new Exception("scribe client return try later");
 			} 
-//			else {
+			else {
 ////				for (Event event : events) {
 ////					//items.add(serializer.serialize(event));
 ////					logger.warn("done. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
 ////				}
-//				logger.debug("scribe rpc send successfully. size=" + items.size());
-//			}
+				logger.info("scribe rpc send successfully. size=" + items.size());
+			}
 		} catch (Throwable e) {
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();
