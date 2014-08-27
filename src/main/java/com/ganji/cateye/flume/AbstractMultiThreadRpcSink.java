@@ -202,6 +202,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 				}
 				sinkCounter.addToEventDrainAttemptCount(size);
 				client.appendBatch(batch);
+				logger.info("{} rpc sink send successfully. size={}", getName(), batch.size());
 			}
 
 			transaction.commit();

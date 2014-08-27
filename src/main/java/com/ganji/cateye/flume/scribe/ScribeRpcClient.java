@@ -189,21 +189,10 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			
 			ResultCode resultCode = client.Log(items);
 			if (!resultCode.equals(ResultCode.OK)) {
-//				for (Event event : events) {
-//					//items.add(serializer.serialize(event));
-//					logger.error("fail. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
-//				}
 				// 为了防止服务器状态恢复后的突发压力，sleep一个随机的时间; 最大2s= 2000ms
 				Thread.sleep((new Random()).nextInt(2000));
 				throw new Exception("scribe client return try later");
 			} 
-			else {
-////				for (Event event : events) {
-////					//items.add(serializer.serialize(event));
-////					logger.warn("done. " + new String(event.getBody(), "UTF-8").replace("\n", "") );
-////				}
-				logger.info("scribe rpc send successfully. size=" + items.size());
-			}
 		} catch (Throwable e) {
 			if (e instanceof ExecutionException) {
 				Throwable cause = e.getCause();
