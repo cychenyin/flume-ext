@@ -1,29 +1,17 @@
 package com.ganji.cateye.flume.scribe;
 
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
-import org.apache.flume.EventDeliveryException;
 import org.apache.flume.FlumeException;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
-import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
@@ -38,7 +26,6 @@ import com.ganji.cateye.flume.ScribeSerializer;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 import com.ganji.cateye.flume.scribe.thrift.ResultCode;
 import com.ganji.cateye.flume.scribe.thrift.scribe;
-import com.ganji.cateye.utils.StatsDClientHelper;
 
 /**
  * ScribeRpcClient 保证事务状态
@@ -48,8 +35,6 @@ import com.ganji.cateye.utils.StatsDClientHelper;
  */
 public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 	private static final Logger logger = LoggerFactory.getLogger(ScribeRpcClient.class);
-	private final Lock stateLock;
-	private State connState;
 	private String hostname;
 	private int port;
 	private String name = "";
@@ -61,8 +46,6 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 	private TTransport transport;
 
 	public ScribeRpcClient() {
-		stateLock = new ReentrantLock(true);
-		connState = State.INIT;
 	}
 
 	@Override
@@ -147,81 +130,6 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 	}
 
 	@Override
-	public void append(Event event) throws EventDeliveryException {
-		List<Event> events = new ArrayList<Event>();
-		events.add(event);
-		this.appendBatch(events);
-		throw new EventDeliveryException("not support, use appendBatch please;");
-	}
-// 用来做测试事务回滚的代码
-//	private boolean stub_fired = false;
-//	// return true when first "test 2" occur
-//	private boolean stub_check(List<Event> events) {
-//		if(stub_fired == true) 
-//			return false;
-//		for(Event event : events) {
-//			String body = null;
-//			try {
-//				body = new String(event.getBody(), "UTF-8").replace("\n", "");
-//			} catch (UnsupportedEncodingException e) {
-//			}
-//			if(body.contains("test 2")) {
-//				stub_fired = true;
-//			}
-//		}
-//		return stub_fired;
-//	}
-	
-	@Override
-	public void appendBatch(final List<Event> events) throws EventDeliveryException {
-		try {
-			if (!isActive()) {
-				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
-			}
-			// group log by route config
-			List<LogEntry> items = new ArrayList<LogEntry>();
-			for (Event event : events) {
-				items.add(serializer.serialize(event));
-			}
-//			if(stub_check(events)) {
-//				throw new EventDeliveryException("test trans rollback");
-//			}
-			
-			ResultCode resultCode = client.Log(items);
-			if (!resultCode.equals(ResultCode.OK)) {
-				// 为了防止服务器状态恢复后的突发压力，sleep一个随机的时间; 最大2s= 2000ms
-				Thread.sleep((new Random()).nextInt(2000));
-				throw new Exception("scribe client return try later");
-			} 
-		} catch (Throwable e) {
-			if (e instanceof ExecutionException) {
-				Throwable cause = e.getCause();
-				if (cause instanceof TException || cause instanceof InterruptedException) {
-					throw new EventDeliveryException("Send call failure cause of rocketmq exception. ", cause);
-				} else if (cause instanceof TimeoutException) {
-					throw new EventDeliveryException("Send call timeout", cause);
-				}
-			}
-			if (e instanceof Error) {
-				throw (Error) e;
-			} else if (e instanceof RuntimeException) {
-				throw (RuntimeException) e;
-			}
-			throw new EventDeliveryException("Failed to send event. ", e);
-		}
-	}
-
-	@Override
-	public boolean isActive() {
-		stateLock.lock();
-		try {
-			return (connState == State.READY);
-		} finally {
-			stateLock.unlock();
-		}
-	}
-
-	@Override
 	public void close() throws FlumeException {
 		try {
 			// Do not release this, because this client is not to be used again
@@ -251,10 +159,19 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 		}
 	}
 
-	// rocketmq producor api不支持批量， 所有这里是一个awful实现
-
-	private static enum State {
-		INIT, READY, DEAD
+	@Override
+	public void doAppendBatch(List<Event> events) throws Exception {
+		// group log by route config
+		List<LogEntry> items = new ArrayList<LogEntry>();
+		for (Event event : events) {
+			items.add(serializer.serialize(event));
+		}
+		ResultCode resultCode = client.Log(items);
+		if (!resultCode.equals(ResultCode.OK)) {
+			// 为了防止服务器状态恢复后的突发压力，sleep一个随机的时间; 最大2s= 2000ms
+			Thread.sleep((new Random()).nextInt(2000));
+			throw new Exception("scribe client return try later");
+		} 
 	}
 
 	public boolean equals(Object o) {
@@ -276,4 +193,5 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 	public String getName() {
 		return name;
 	}
+
 }

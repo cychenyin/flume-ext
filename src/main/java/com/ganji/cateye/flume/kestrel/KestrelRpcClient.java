@@ -9,26 +9,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
-import org.apache.flume.EventDeliveryException;
 import org.apache.flume.FlumeException;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.client.exception.MQBrokerException;
-import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.flume.MessageSerializer;
 import com.ganji.cateye.flume.PlainMessageSerializer;
@@ -36,150 +26,23 @@ import com.ganji.cateye.flume.ScribeSerializer;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 
 /**
- * KestrelRpcClient 保证事务状态
+ * KestrelRpcClient
  * 
  * @author asdf
  * 
  */
 public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 	private static final Logger logger = LoggerFactory.getLogger(KestrelRpcClient.class);
-	private final Lock stateLock;
-	private State connState;
 	private String hostname;
 	private int port;
 	private String name = "";
-	private String categoryHeaderKey = null;
-	private String forceCategory = null;
-	private boolean compress = false;
-	private String serializerName = "scribe";
-	private MessageSerializer serializer = null;
+	private String categoryHeaderKey;
+	private final boolean compress = false;
+	private MessageSerializer serializer;
 	RouteConfig routes = new RouteConfig();
-
 	private KestrelThriftClient client;
-	private TTransport transport;
 	
 	public KestrelRpcClient() {
-		stateLock = new ReentrantLock(true);
-		connState = State.INIT;
-	}
-
-	@Override
-	public void append(Event event) throws EventDeliveryException {
-		try {
-			if (!isActive()) {
-				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
-			}
-
-			List<ByteBuffer> items = new ArrayList<ByteBuffer>();
-			items.add(serializer.encodeToByteBuffer(serializer.serialize(event), compress));
-			client.put(forceCategory, items, 0);
-
-		} catch (Throwable e) {
-			// MQClientException RemotingException MQBrokerException InterruptedException
-			if (e instanceof ExecutionException) {
-				Throwable cause = e.getCause();
-				// if (cause instanceof EventDeliveryException) {
-				if (cause instanceof MQClientException
-						|| cause instanceof RemotingException
-						|| cause instanceof MQBrokerException
-						|| cause instanceof InterruptedException) {
-					// throw (EventDeliveryException) cause;
-					throw new EventDeliveryException("Send call failure cause of rocketmq exception. ", cause);
-				} else if (cause instanceof TimeoutException) {
-					throw new EventDeliveryException("Send call timeout", cause);
-				}
-			}
-
-			if (e instanceof Error) {
-				throw (Error) e;
-			} else if (e instanceof RuntimeException) {
-				throw (RuntimeException) e;
-			}
-			throw new EventDeliveryException("Failed to send event. ", e);
-		}
-	}
-
-	@Override
-	public void appendBatch(final List<Event> events) throws EventDeliveryException {
-		try {
-			if (!isActive()) {
-				throw new EventDeliveryException("Client was closed due to error.  Please create a new client");
-			}
-			// group log by route config
-			Map<String, List<ByteBuffer>> items = new HashMap<String, List<ByteBuffer>>();
-			for (Event event : events) {
-				LogEntry log = serializer.serialize(event);
-				String queue = routes.route(log.category);
-				// avoid if queue is empty
-				if (StringUtils.isNotEmpty(queue)) {
-					List<ByteBuffer> list = items.get(queue);
-					if (list == null) {
-						list = new ArrayList<ByteBuffer>();
-						items.put(queue, list);
-					}
-					list.add(serializer.encodeToByteBuffer(log, compress));
-				}
-			}
-			// send
-			for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
-				client.put(e.getKey(), e.getValue(), 0);
-			}
-			items.clear();
-			items = null;
-		} catch (Throwable e) {
-			if (e instanceof ExecutionException) {
-				Throwable cause = e.getCause();
-				if (cause instanceof MQClientException
-						|| cause instanceof RemotingException
-						|| cause instanceof TException
-						|| cause instanceof MQBrokerException
-						|| cause instanceof InterruptedException) {
-					throw new EventDeliveryException("Send call failure cause of rocketmq exception. ", cause);
-				} else if (cause instanceof TimeoutException) {
-					throw new EventDeliveryException("Send call timeout", cause);
-				}
-			}
-			if (e instanceof Error) {
-				throw (Error) e;
-			} else if (e instanceof RuntimeException) {
-				throw (RuntimeException) e;
-			}
-			throw new EventDeliveryException("Failed to send event. ", e);
-		}
-	}
-
-	@Override
-	public boolean isActive() {
-		stateLock.lock();
-		try {
-			return (connState == State.READY);
-		} finally {
-			stateLock.unlock();
-		}
-	}
-
-	@Override
-	public void close() throws FlumeException {
-		try {
-			// Do not release this, because this client is not to be used again
-			stateLock.lock();
-			connState = State.DEAD;
-			
-			client.close();
-			routes.clear();
-			
-			logger.info("KestrelRpcClient closed. name={}", name);
-			
-		} catch (Throwable ex) {
-			if (ex instanceof Error) {
-				throw (Error) ex;
-			} else if (ex instanceof RuntimeException) {
-				throw (RuntimeException) ex;
-			}
-			throw new FlumeException("Failed to close SribeRpcClient. ", ex);
-		} finally {
-			stateLock.unlock();
-		}
 	}
 
 	@SuppressWarnings("unused")
@@ -207,7 +70,7 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 			}
 
 			// serialization
-			serializerName = properties.getProperty(KestrelSinkConsts.CONFIG_SERIALIZER, KestrelSinkConsts.DEFAULT_SERIALIZER);
+			String serializerName = properties.getProperty(KestrelSinkConsts.CONFIG_SERIALIZER, KestrelSinkConsts.DEFAULT_SERIALIZER);
 			if (serializerName.equalsIgnoreCase(KestrelSinkConsts.DEFAULT_SERIALIZER)) {
 				serializer = new ScribeSerializer();
 			}
@@ -254,11 +117,8 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 
 			client = new KestrelThriftClient(hostname, port);
 			name = String.format("%d@%s:%d", new Random().nextInt(), hostname, port);
-
-			// logger.info("KestrelRpcClient readyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
 			connState = State.READY;
 		} catch (Throwable ex) {
-			logger.warn("KestrelRpcClient ffffffffffffffffffffffffffffffffail to start producer");
 			// Failed to configure, kill the client.
 			connState = State.DEAD;
 			if (ex instanceof Error) {
@@ -272,11 +132,55 @@ public class KestrelRpcClient extends AbstractMultiThreadRpcClient {
 		}
 	}
 
-	// rocketmq producor api不支持批量， 所有这里是一个awful实现
-
-	private static enum State {
-		INIT, READY, DEAD
+	@Override
+	public void close() throws FlumeException {
+		try {
+			// Do not release this, because this client is not to be used again
+			stateLock.lock();
+			connState = State.DEAD;
+			
+			client.close();
+			routes.clear();
+			
+			logger.info("KestrelRpcClient closed. name={}", name);
+			
+		} catch (Throwable ex) {
+			if (ex instanceof Error) {
+				throw (Error) ex;
+			} else if (ex instanceof RuntimeException) {
+				throw (RuntimeException) ex;
+			}
+			throw new FlumeException("Failed to close SribeRpcClient. ", ex);
+		} finally {
+			stateLock.unlock();
+		}
 	}
+	
+	@Override
+	public void doAppendBatch(List<Event> events) throws Exception {
+		// group log by route config
+		Map<String, List<ByteBuffer>> items = new HashMap<String, List<ByteBuffer>>();
+		for (Event event : events) {
+			LogEntry log = serializer.serialize(event);
+			String queue = routes.route(log.category);
+			// avoid if queue is empty
+			if (StringUtils.isNotEmpty(queue)) {
+				List<ByteBuffer> list = items.get(queue);
+				if (list == null) {
+					list = new ArrayList<ByteBuffer>();
+					items.put(queue, list);
+				}
+				list.add(serializer.encodeToByteBuffer(log, compress));
+			}
+		}
+		// send
+		for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
+			client.put(e.getKey(), e.getValue(), 0);
+		}
+		items.clear();
+		items = null;
+	}
+
 
 	public boolean equals(Object o) {
 		if (o == null || !(o instanceof KestrelRpcClient)) {

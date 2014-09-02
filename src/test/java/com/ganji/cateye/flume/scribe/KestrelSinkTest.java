@@ -82,7 +82,6 @@ public class KestrelSinkTest {
 		Assert.assertTrue(left == right);
 
 		done = true;
-
 	}
 
 	@Ignore
@@ -340,12 +339,11 @@ public class KestrelSinkTest {
 		done = true;
 	}
 
-	@Ignore
+	// @Ignore
 	@Test
 	public void testProcessA() throws Exception {
 		input("cateye.a", 1000);
 		process();
-
 	}
 
 	private void process() throws EventDeliveryException, InterruptedException {
@@ -353,7 +351,7 @@ public class KestrelSinkTest {
 		Status status = sink.process();
 		while (status != Status.BACKOFF) {
 			status = sink.process();
-			// Thread.sleep(1);
+			// Thread.sleep(1);h
 		}
 		// Status status= sink.doProcess();
 		done = true;
@@ -433,7 +431,7 @@ public class KestrelSinkTest {
 
 		ctx.put(KestrelSinkConsts.CONFIG_ROUTES, "q1 q2");
 		ctx.put("route.q1.categories", "cateye.x cateye.y* cateye.a*");
-		ctx.put("route.q1.queue", "flume5");
+		ctx.put("route.q1.queue", "flume1");
 
 		ctx.put("route.q2.categories", "cateye.b cateye.c* cateye.dd*");
 		ctx.put("route.q2.queue", "flume2");
