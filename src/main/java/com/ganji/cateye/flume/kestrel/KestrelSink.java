@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 import com.ganji.cateye.flume.AbstractMultiThreadRpcSink;
 
-/**
+/*
  * Kestrel sink @see KestrelRpcClient
  * 示例：
  * agent.sinks.statSink.type = com.ganji.cateye.flume.kestrel.KestrelSink
@@ -44,10 +44,10 @@ public class KestrelSink extends AbstractMultiThreadRpcSink {
 		// set or override setting here.
 		AbstractMultiThreadRpcClient ret = null;
 		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
-//		try {
-//		}catch(Throwable e){
-//			logger.error("fail to create kestrel rpc client.", e);
-//		}
+		// try {
+		// }catch(Throwable e){
+		// logger.error("fail to create kestrel rpc client.", e);
+		// }
 		return ret;
 	}
 }

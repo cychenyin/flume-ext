@@ -32,7 +32,7 @@ import com.ganji.cateye.flume.AbstractMultiThreadRpcSink;
  */
 public class RocketmqSink extends AbstractMultiThreadRpcSink {
 	private static final Logger logger = LoggerFactory.getLogger(RocketmqSink.class);
-	
+
 	@Override
 	protected AbstractMultiThreadRpcClient initializeRpcClient(Properties props) {
 		if (!props.containsKey(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE)) {
@@ -40,16 +40,15 @@ public class RocketmqSink extends AbstractMultiThreadRpcSink {
 					RocketmqRpcClient.class.getCanonicalName());
 		}
 		// set or override setting here.
-		
+
 		AbstractMultiThreadRpcClient ret = null;
 		try {
-		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
-		
-		}catch(Throwable e){
+			ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
+
+		} catch (Throwable e) {
 			logger.error("fail to create rocket rpc client", e);
 		}
-		
-		
+
 		return ret;
 	}
 }
