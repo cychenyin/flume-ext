@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 import org.apache.flume.Context;
 import org.apache.flume.Event;
@@ -91,22 +92,22 @@ public class ScribeSource extends AbstractSource implements
 			this.runSelectorServer();
 		}
 
-		private void runSelectorServer() {
+		@SuppressWarnings({ "rawtypes", "unchecked", "unused" })
+		private void runThreadPoolServer() {
 			try {
 				scribe.Processor processor = new scribe.Processor(new Receiver());
 				TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
-				// THsHaServer.Args args = new THsHaServer.Args(transport);
-				TThreadedSelectorServer.Args args = new TThreadedSelectorServer.Args(transport);
+				TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
 				int maxReadBufferBytes = 16384000;
-				args.maxReadBufferBytes = maxReadBufferBytes;
-				args.workerThreads(workers);
+				//args.maxReadBufferBytes = maxReadBufferBytes;
+				//args.workerThreads(workers);
+				args.executorService = Executors.newFixedThreadPool(workers);
+				args.maxWorkerThreads = workers;
 				args.processor(processor);
 				args.transportFactory(new TFramedTransport.Factory(maxReadBufferBytes)); // Integer.MAX_VALUE
 				args.protocolFactory(new TBinaryProtocol.Factory(false, false));
 
-				// server = new THsHaServer(args);
-				// server = new TThreadedSelectorServer(args);
-				// server = new TThreadPoolServer(args);
+				server = new TThreadPoolServer(args);
 
 				LOG.info("Starting Scribe Source on port " + port);
 
@@ -117,21 +118,42 @@ public class ScribeSource extends AbstractSource implements
 		}
 
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		public void runbak() {
+		private void runSelectorServer() {
 			try {
 				scribe.Processor processor = new scribe.Processor(new Receiver());
 				TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
-				// THsHaServer.Args args = new THsHaServer.Args(transport);
 				TThreadedSelectorServer.Args args = new TThreadedSelectorServer.Args(transport);
-				// args.maxReadBufferBytes =
+				int maxReadBufferBytes = 16384000;
+				args.maxReadBufferBytes = maxReadBufferBytes;
 				args.workerThreads(workers);
 				args.processor(processor);
-				args.transportFactory(new TFramedTransport.Factory(Integer.MAX_VALUE));
+				args.transportFactory(new TFramedTransport.Factory(maxReadBufferBytes)); // Integer.MAX_VALUE
 				args.protocolFactory(new TBinaryProtocol.Factory(false, false));
 
-				// server = new THsHaServer(args);
 				server = new TThreadedSelectorServer(args);
+				
+				LOG.info("Starting Scribe Source on port " + port);
 
+				server.serve();
+			} catch (Exception e) {
+				LOG.warn("Scribe failed", e);
+			}
+		}
+
+		@SuppressWarnings({ "rawtypes", "unchecked", "unused" })
+		public void runHsHaServer() {
+			try {
+				scribe.Processor processor = new scribe.Processor(new Receiver());
+				TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
+				THsHaServer.Args args = new THsHaServer.Args(transport);
+				int maxReadBufferBytes = 16384000;
+				args.maxReadBufferBytes =maxReadBufferBytes;
+				args.workerThreads(workers);
+				args.processor(processor);
+				args.transportFactory(new TFramedTransport.Factory(maxReadBufferBytes )); // Integer.MAX_VALUE
+				args.protocolFactory(new TBinaryProtocol.Factory(false, false));
+
+				server = new THsHaServer(args);
 				LOG.info("Starting Scribe Source on port " + port);
 
 				server.serve();
