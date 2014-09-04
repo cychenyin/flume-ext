@@ -35,6 +35,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TServer;
+import org.apache.thrift.server.TThreadedSelectorServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingServerTransport;
@@ -91,14 +92,16 @@ public class ScribeSource extends AbstractSource implements
       try {
         scribe.Processor processor = new scribe.Processor(new Receiver());
         TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
-        THsHaServer.Args args = new THsHaServer.Args(transport);
-
+        //THsHaServer.Args args = new THsHaServer.Args(transport);
+        TThreadedSelectorServer.Args args = new TThreadedSelectorServer.Args(transport);
+        
         args.workerThreads(workers);
         args.processor(processor);
         args.transportFactory(new TFramedTransport.Factory(Integer.MAX_VALUE));
         args.protocolFactory(new TBinaryProtocol.Factory(false, false));
 
-        server = new THsHaServer(args);
+        // server = new THsHaServer(args);
+        server = new TThreadedSelectorServer(args);
 
         LOG.info("Starting Scribe Source on port " + port);
 
