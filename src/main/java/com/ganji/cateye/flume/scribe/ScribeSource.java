@@ -106,9 +106,7 @@ public class ScribeSource extends AbstractSource implements
 				args.processor(processor);
 				args.transportFactory(new TFramedTransport.Factory(maxReadBufferBytes)); // Integer.MAX_VALUE
 				args.protocolFactory(new TBinaryProtocol.Factory(false, false));
-
 				server = new TThreadPoolServer(args);
-
 				LOG.info("Starting Scribe Source on port " + port);
 
 				server.serve();
