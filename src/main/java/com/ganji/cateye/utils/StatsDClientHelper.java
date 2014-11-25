@@ -4,14 +4,14 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 import com.ganji.arch.config.SystemConfig;
 import com.timgroup.statsd.NonBlockingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
 import com.timgroup.statsd.StatsDClientException;
 
 public class StatsDClientHelper {
-	private final Logger logger = LoggerFactory
-			.getLogger(StatsDClientHelper.class);
+	private final Logger logger = LoggerFactory.getLogger(StatsDClientHelper.class);
 	private StatsDClient client;
 
 	private String host;

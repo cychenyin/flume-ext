@@ -26,11 +26,12 @@ import com.google.common.base.Charsets;
 public class ScribeRpcClientTest {
 	ScribeRpcClient client;
 	int total = 300000;
-	 @Ignore
+	
+	// @Ignore
 	@Test
 	public void testSend() throws EventDeliveryException {
-		total = 300000;
-		input("cateye.aa", total);
+		total = 1;
+		input("test.aa", total);
 	}
 	
 	private void input(String category, int count) throws EventDeliveryException {
@@ -54,15 +55,19 @@ public class ScribeRpcClientTest {
 			list.clear();
 		}
 	}
+	
 	long start, end;
 	@Before
 	public void setUp() throws Exception {
 		
 		Context ctx = new Context();
-		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "192.168.129.213");
-		ctx.put(ScribeSinkConsts.CONFIG_PORT, "31463");
+//		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "192.168.129.213");
+//		ctx.put(ScribeSinkConsts.CONFIG_PORT, "31463");
+
+		ctx.put(ScribeSinkConsts.CONFIG_HOSTNAME, "10.3.5.5");
+		ctx.put(ScribeSinkConsts.CONFIG_PORT, "53375");
 		ctx.put(ScribeSinkConsts.CONFIG_SERIALIZER, "scribe");
-		ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, String.valueOf(2000));
+		ctx.put(ScribeSinkConsts.CONFIG_BATCHSIZE, String.valueOf(100));
 				
 		ctx.put(RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE, "1");
 		

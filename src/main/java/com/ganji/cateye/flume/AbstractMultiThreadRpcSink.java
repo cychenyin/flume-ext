@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.ganji.cateye.utils.StatsDClientHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
 
 /**
  * 远程RPC抽象类，封装了远程数据访问的多线程和连接池细节。 注意： 该抽象类能高效工作的前提是时候用的channel在不同线程中返回不同的transaction实例。具体所配参考
@@ -337,8 +338,8 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 					ret = initializeRpcClient(clientProps);
 					currentPoolSize++;
 					checkedOutClients.add(ret);
-					logger.info("{} add new rpc client. conn pool currentPoolSize={},maxPoolSize={}", getName(), currentPoolSize,
-							maxPoolSize);
+					logger.info(String.format("%s add new rpc client. conn pool currentPoolSize=%d,maxPoolSize=%d", getName(), currentPoolSize,
+							maxPoolSize));
 					return ret;
 				}
 				while (availableClients.isEmpty()) {
@@ -367,7 +368,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		public void destroy(AbstractMultiThreadRpcClient client) {
 			poolLock.lock();
 			try {
-				logger.info("{} removing rpc client. client.id={}. currentPoolSize={}", getName(), client.getName(), currentPoolSize);
+				logger.info(String.format( "%s removing rpc client. client.id=%s. currentPoolSize=%d", getName(), client.getName(), currentPoolSize));
 				if (checkedOutClients.remove(client))
 					currentPoolSize--;
 			} finally {

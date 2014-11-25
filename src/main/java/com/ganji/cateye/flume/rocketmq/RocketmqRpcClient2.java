@@ -159,6 +159,7 @@ public class RocketmqRpcClient2 extends AbstractRpcClient {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private void dump(Properties properties) {
 		for (Object key : properties.keySet()) {
 			LOGGER.warn("RocketmqRpcClient dump conifg {}={}", key.toString(), properties.getProperty(key.toString()));
@@ -233,6 +234,7 @@ public class RocketmqRpcClient2 extends AbstractRpcClient {
 	}
 
 	// rocketmq producor api不支持批量， 所有这里是一个awful实现
+	@SuppressWarnings("unused")
 	private Future<Void> doAppendBatch(final ClientWrapper client, final List<Event> events) throws Exception {
 
 		return callTimeoutPool.submit(new Callable<Void>() {
@@ -321,7 +323,7 @@ public class RocketmqRpcClient2 extends AbstractRpcClient {
 			producer.setCompressMsgBodyOverHowmuch(RocketmqRpcClient2.this.compressMsgBodyOverHowmuch);
 			producer.setInstanceName("cateye" + (new Random()).nextInt());
 			producer.start();
-			LOGGER.warn("RocketmqRpcClient getCreateTopicKey={} instanceName={} clientId={}", producer.getCreateTopicKey(), producer.getInstanceName(), producer.buildMQClientId());
+			LOGGER.warn(String.format( "RocketmqRpcClient getCreateTopicKey=%s instanceName=%s clientId=%s", producer.getCreateTopicKey(), producer.getInstanceName(), producer.buildMQClientId()));
 			hashCode = producer.hashCode();
 		}
 
