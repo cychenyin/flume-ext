@@ -2,6 +2,7 @@ package com.ganji.cateye.flume;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,8 +16,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 实现支持*通配符后缀的Selector，用于Source选择Channels， *只允许放在最后
+ * 分叉流通配选择器
+ * 	NXX的名字，呵呵， 容易产生不明觉厉的赶脚
+ * 要点：
+ * 实现支持*通配符后缀的Selector，用于Source选择Channels， *只允许放在最后； 
+ * 同一个category只会命中最多一个channel
+ * 优先匹配category最长的channel
  * @author asdf
+ * 
+ * example:
+ * agent.sources.appSrc.selector.type = com.ganji.cateye.flume.MultiplexingChannelWildcardSelector
+ * agent.sources.appSrc.selector.header = category
+ * agent.sources.appSrc.selector.mapping.uc.log.op.* = c5 c7 c8
+ * agent.sources.appSrc.selector.mapping.uc.log.* = c7 c8
+ * agent.sources.appSrc.selector.mapping.ms.pv = cpv
+ * agent.sources.appSrc.selector.optional.cdc.data.* = c4
+ * agent.sources.appSrc.selector.default = c1
  */
 public class MultiplexingChannelWildcardSelector extends AbstractChannelSelector {
 
@@ -103,6 +118,8 @@ public class MultiplexingChannelWildcardSelector extends AbstractChannelSelector
 				wildcardKeyOfMapping.add(headerValue.substring(0, headerValue.length() - 1));
 			}
 		}
+		descSortByLength(wildcardKeyOfMapping);
+		
 		// If no mapping is configured, it is ok.
 		// All events will go to the default channel(s).
 		Map<String, String> optionalChannelsMapping = context.getSubProperties(CONFIG_PREFIX_OPTIONAL + ".");
@@ -133,5 +150,21 @@ public class MultiplexingChannelWildcardSelector extends AbstractChannelSelector
 				wildcardKeyOfOptional.add(hdr.substring(0, hdr.length() - 1));
 			}
 		}
+		descSortByLength(wildcardKeyOfOptional);
+	}
+	
+	// 根据字串符长度倒序排序；如果尾部有*号，则不考虑型号
+	private void descSortByLength(List<String> list) {
+		Collections.sort(list, new Comparator<String>(){
+			
+			@Override
+			public int compare(String o1, String o2) {
+				if(o1 == null || o2 == null )
+					return -1;
+				int l2 = o2.endsWith("*") ? o2.length() - 1 : o2.length();
+				int l1 = o1.endsWith("*") ? o1.length() - 1 : o1.length();
+				return l2 - l1;
+			}});
+
 	}
 }
