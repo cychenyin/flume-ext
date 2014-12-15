@@ -121,7 +121,7 @@ public class ScribeSource extends AbstractSource implements
 				scribe.Processor processor = new scribe.Processor(new Receiver());
 				TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
 				TThreadedSelectorServer.Args args = new TThreadedSelectorServer.Args(transport);
-				int maxReadBufferBytes = 16384000;
+				int maxReadBufferBytes = 32768000; // 16384000;
 				args.maxReadBufferBytes = maxReadBufferBytes;
 				args.workerThreads(workers);
 				args.processor(processor);
