@@ -12,6 +12,8 @@
 ## Release history ##
 ----------------
 
+- ### 1.0.2
+	remove dependence of ganji common-1.0
 
 - ### 1.0.1 
 by chenyin

@@ -35,6 +35,7 @@ import org.apache.flume.EventDeliveryException;
 import org.apache.flume.Transaction;
 import org.apache.flume.api.RpcClient;
 import org.apache.flume.api.RpcClientConfigurationConstants;
+import org.apache.flume.channel.file.FileChannel;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.instrumentation.SinkCounter;
 import org.apache.flume.sink.AbstractSink;
@@ -202,6 +203,15 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	protected ProcessResult doProcess() throws EventDeliveryException {
 		ProcessResult result = ProcessResult.READY;
 		Channel channel = getChannel();
+		if(channel instanceof FileChannel) {
+			FileChannel f = (FileChannel)channel;
+			// 如果有多个client同时发送的话，channel有可能被别的取光后关闭了
+			if(f.isOpen() == false) {
+				logger.warn(String.format("Rpc Sink %s 's file channel %s is closed."
+						, getName(), channel.getName()));
+				return ProcessResult.BACKOFF;
+			}
+		}
 		// 注意， 在同一个线程中， channel.getTransaction()多次调用返回相同的示例；不同线程返回不同的
 		Transaction transaction = channel.getTransaction();
 		AbstractMultiThreadRpcClient client = null;

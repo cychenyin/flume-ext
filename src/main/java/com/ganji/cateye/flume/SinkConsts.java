@@ -9,7 +9,7 @@ package com.ganji.cateye.flume;
 public class SinkConsts {
 
     // 最小的请求超时时间
-    public static final int MIN_REQUEST_TIMEOUT_MILLIS = 5000;
+    public static final int MIN_REQUEST_TIMEOUT_MILLIS = 30000;
     public static final String CONFIG_REQUEST_TIMEOUT_MILLIS = "request_timeout_millis";
     
     // // connectionPoolSize * SinkRunner.maxBackoffSleep // Default= 5 * 5 = 25 second
