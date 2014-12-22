@@ -12,6 +12,7 @@ import org.apache.thrift.transport.TTransport;
 
 import com.ganji.cateye.flume.kestrel.KestrelSinkConsts;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+import com.google.common.base.Charsets;
 
 public class ScribeSerializer implements MessageSerializer {
 
@@ -60,8 +61,11 @@ public class ScribeSerializer implements MessageSerializer {
 	@Override
 	public LogEntry serialize(Event event) {
 		LogEntry entry = new LogEntry();
-		entry.setMessage(ByteBuffer.wrap(event.getBody()));
-
+		// code for thrift 0.8+
+		// entry.setMessage(ByteBuffer.wrap(event.getBody()));
+		// code for thrift 0.7
+		entry.setMessage( new String(event.getBody(), Charsets.UTF_8));
+		
 		String category = event.getHeaders().get(this.categoryHeaderKey);
 		if (category == null) {
 			category = "empty";

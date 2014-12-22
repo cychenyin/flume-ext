@@ -27,6 +27,9 @@ import org.apache.flume.conf.ComponentConfiguration;
 
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
  
@@ -37,8 +40,10 @@ public class EventToLogEntrySerializer implements FlumeEventSerializer {
 	@Override
 	public LogEntry serialize(Event event) {
 		LogEntry entry = new LogEntry();
-		entry.setMessage(ByteBuffer.wrap(event.getBody()));
-
+		// code for thrift 0.8 +
+		// entry.setMessage(ByteBuffer.wrap(event.getBody()));
+		entry.setMessage(new String(event.getBody(), Charsets.UTF_8));
+		// code of thrift 0.7
 		String category = event.getHeaders().get(scribeCategoryHeaderKey);
 		if (category == null) {
 			category = "empty";

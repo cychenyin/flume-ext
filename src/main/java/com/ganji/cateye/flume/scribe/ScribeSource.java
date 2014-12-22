@@ -37,7 +37,6 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
-import org.apache.thrift.server.TThreadedSelectorServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingServerTransport;
@@ -89,7 +88,8 @@ public class ScribeSource extends AbstractSource implements
 	private class Startup extends Thread {
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public void run() {
-			this.runSelectorServer();
+			//this.runSelectorServer();
+			this.runThreadPoolServer();
 		}
 
 		@SuppressWarnings({ "rawtypes", "unchecked", "unused" })
@@ -101,8 +101,9 @@ public class ScribeSource extends AbstractSource implements
 				int maxReadBufferBytes = 16384000;
 				//args.maxReadBufferBytes = maxReadBufferBytes;
 				//args.workerThreads(workers);
-				args.executorService = Executors.newFixedThreadPool(workers);
-				args.maxWorkerThreads = workers;
+				// code for thrift 0.8+
+				// args.executorService = Executors.newFixedThreadPool(workers);
+				args.maxWorkerThreads(workers);
 				args.processor(processor);
 				args.transportFactory(new TFramedTransport.Factory(maxReadBufferBytes)); // Integer.MAX_VALUE
 				args.protocolFactory(new TBinaryProtocol.Factory(false, false));
@@ -110,34 +111,34 @@ public class ScribeSource extends AbstractSource implements
 				LOG.info("Starting Scribe Source on port " + port);
 
 				server.serve();
-			} catch (Exception e) {
-				LOG.warn("Scribe failed", e);
-			}
-		}
-
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		private void runSelectorServer() {
-			try {
-				scribe.Processor processor = new scribe.Processor(new Receiver());
-				TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
-				TThreadedSelectorServer.Args args = new TThreadedSelectorServer.Args(transport);
-				int maxReadBufferBytes = 32768000; // 16384000;
-				args.maxReadBufferBytes = maxReadBufferBytes;
-				args.workerThreads(workers);
-				args.processor(processor);
-				args.transportFactory(new TFramedTransport.Factory(maxReadBufferBytes)); // Integer.MAX_VALUE
-				args.protocolFactory(new TBinaryProtocol.Factory(false, false));
-
-				server = new TThreadedSelectorServer(args);
 				
-				LOG.info("Starting Scribe Source on port " + port);
-
-				server.serve();
 			} catch (Exception e) {
 				LOG.warn("Scribe failed", e);
 			}
 		}
-
+// code for thrift 0.8+; 前面的版本不支持selectorServer
+//		@SuppressWarnings({ "rawtypes", "unchecked" })
+//		private void runSelectorServer() {
+//			try {
+//				scribe.Processor processor = new scribe.Processor(new Receiver());
+//				TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
+//				TThreadedSelectorServer.Args args = new TThreadedSelectorServer.Args(transport);
+//				int maxReadBufferBytes = 32768000; // 16384000;
+//				args.maxReadBufferBytes = maxReadBufferBytes;
+//				args.workerThreads(workers);
+//				args.processor(processor);
+//				args.transportFactory(new TFramedTransport.Factory(maxReadBufferBytes)); // Integer.MAX_VALUE
+//				args.protocolFactory(new TBinaryProtocol.Factory(false, false));
+//
+//				server = new TThreadedSelectorServer(args);
+//				
+//				LOG.info("Starting Scribe Source on port " + port);
+//
+//				server.serve();
+//			} catch (Exception e) {
+//				LOG.warn("Scribe failed", e);
+//			}
+//		}
 		@SuppressWarnings({ "rawtypes", "unchecked", "unused" })
 		public void runHsHaServer() {
 			try {
@@ -210,9 +211,10 @@ public class ScribeSource extends AbstractSource implements
 							headers.put(SCRIBE_CATEGORY, category);
 						}
 						// code of thrift-0.7
-						// Event event = EventBuilder.withBody(entry.getMessage().getBytes(), headers);
+						Event event = EventBuilder.withBody(entry.getMessage().getBytes(), headers);
 						// code of thrift-0.8 & 0.9
-						Event event = EventBuilder.withBody(entry.getMessage(), headers);
+						//Event event = EventBuilder.withBody(entry.getMessage(), , headers);
+						
 						events.add(event);
 					}
 
@@ -229,73 +231,73 @@ public class ScribeSource extends AbstractSource implements
 
 			return ResultCode.TRY_LATER;
 		}
-
-		@Override
-		public String getName() throws TException {
-			return "scribeSourceReceiver";
-		}
-
-		@Override
-		public String getVersion() throws TException {
-			return "1.0.0";
-		}
-
-		@Override
-		public fb_status getStatus() throws TException {
-			return fb_status.ALIVE;
-		}
-
-		@Override
-		public String getStatusDetails() throws TException {
-			return "ALIVE";
-		}
-
-		@Override
-		public Map<String, Long> getCounters() throws TException {
-			return null;
-		}
-
-		@Override
-		public long getCounter(String key) throws TException {
-			return 0;
-		}
-
-		@Override
-		public void setOption(String key, String value) throws TException {
-		}
-
-		@Override
-		public String getOption(String key) throws TException {
-			return null;
-		}
-
-		@Override
-		public Map<String, String> getOptions() throws TException {
-			return null;
-		}
-
-		@Override
-		public String getCpuProfile(int profileDurationInSec) throws TException {
-			return null;
-		}
-
-		@Override
-		public long aliveSince() throws TException {
-			return 0;
-		}
-
-		@Override
-		public void reinitialize() throws TException {
-		}
-
-		@Override
-		public void shutdown() throws TException {
-		}
-
-		@Override
-		public String getUserLogs(int userId, int page, int pageCount, String ruleId) throws TException {
-			return null;
-		}
+// remove fb303 interface
+//		// @Override
+//		public String getName() throws TException {
+//			return "scribeSourceReceiver";
+//		}
+//
+//		// @Override
+//		public String getVersion() throws TException {
+//			return "1.0.0";
+//		}
+//
+//		// @Override
+//		public fb_status getStatus() throws TException {
+//			return fb_status.ALIVE;
+//		}
+//
+//		// @Override
+//		public String getStatusDetails() throws TException {
+//			return "ALIVE";
+//		}
+//
+//		// @Override
+//		public Map<String, Long> getCounters() throws TException {
+//			return null;
+//		}
+//
+//		// @Override
+//		public long getCounter(String key) throws TException {
+//			return 0;
+//		}
+//
+//		// @Override
+//		public void setOption(String key, String value) throws TException {
+//		}
+//
+//		// @Override
+//		public String getOption(String key) throws TException {
+//			return null;
+//		}
+//
+//		// @Override
+//		public Map<String, String> getOptions() throws TException {
+//			return null;
+//		}
+//
+//		// @Override
+//		public String getCpuProfile(int profileDurationInSec) throws TException {
+//			return null;
+//		}
+//
+//		// @Override
+//		public long aliveSince() throws TException {
+//			return 0;
+//		}
+//
+//		// @Override
+//		public void reinitialize() throws TException {
+//		}
+//
+//		// @Override
+//		public void shutdown() throws TException {
+//		}
+//
+//		// @Override
+//		public String getUserLogs(int userId, int page, int pageCount, String ruleId) throws TException {
+//			return null;
+//		}
 
 	}
 

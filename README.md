@@ -12,6 +12,11 @@
 ## Release history ##
 ----------------
 
+- ### 1.0.3
+	use orginal flume scribed source
+	use simple single thread rpc client model
+	flume version up to 1.5.2
+
 - ### 1.0.2
 	remove dependence of ganji common-1.0
 
