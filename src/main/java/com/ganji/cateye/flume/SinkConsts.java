@@ -19,5 +19,6 @@ public class SinkConsts {
     public static final String CONFIG_ACCURATE_PROCESS_STATUS = "accurate_process_status";
     public static final boolean DEFAULT_ACCURATE_PROCESS_STATUS = true;
 
-    
+    public static final String CONFIG_ENSURE_SUCCESS = "ensure_success";
+    public static final boolean DEFAULT_ENSURE_SUCCESS = true;
 }

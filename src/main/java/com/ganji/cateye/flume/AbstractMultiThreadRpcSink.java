@@ -86,7 +86,7 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 	private ConnectionPoolManager connectionManager = new ConnectionPoolManager(connectionPoolSize);
 	private StatsDClientHelper stats;
 	private boolean accurateProcessStatus = false;
-
+	private boolean ensureSuccess = true;
 	@Override
 	public void configure(Context context) {
 		stats = new StatsDClientHelper();
@@ -122,6 +122,12 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 		this.accurateProcessStatus = "true".equals(clientProps.getProperty(
 				SinkConsts.CONFIG_ACCURATE_PROCESS_STATUS,
 				String.valueOf(SinkConsts.DEFAULT_ACCURATE_PROCESS_STATUS)));
+		
+		this.ensureSuccess = "true".equals(clientProps.getProperty(
+				SinkConsts.CONFIG_ENSURE_SUCCESS,
+				String.valueOf(SinkConsts.DEFAULT_ENSURE_SUCCESS)));
+		
+		logger.warn(SinkConsts.CONFIG_ENSURE_SUCCESS + " = " + this.ensureSuccess);
 	}
 
 	/**
@@ -251,7 +257,11 @@ public abstract class AbstractMultiThreadRpcSink extends AbstractSink implements
 			sinkCounter.addToEventDrainSuccessCount(size);
 
 		} catch (Throwable t) {
-			transaction.rollback();
+			if(this.ensureSuccess)
+				transaction.rollback();
+			 else 
+				transaction.commit();
+			
 			stats.incrementCounter(getName() + ".rollbacktimes", 1);
 			// 因为在线程内容部，所以吃掉所有的异常
 			if (t instanceof Error) {

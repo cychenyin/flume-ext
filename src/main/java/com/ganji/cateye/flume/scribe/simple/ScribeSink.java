@@ -131,9 +131,9 @@ public class ScribeSink extends AbstractSink implements Configurable {
 			sinkCounter.addToEventDrainAttemptCount(eventList.size());
 			ResultCode rc = eventList.size() > 0 ? client.Log(eventList) : ResultCode.OK;
 			if (rc.equals(ResultCode.OK)) {
-				transaction.commit();
-				sinkCounter.addToEventDrainSuccessCount(eventList.size());
 			}
+			transaction.commit();
+			sinkCounter.addToEventDrainSuccessCount(eventList.size());
 		} catch (Throwable e) {
 			transaction.rollback();
 			logger.error("exception while processing in Scribe Sink", e);
