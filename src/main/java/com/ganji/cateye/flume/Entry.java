@@ -17,7 +17,7 @@ import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.ganji.cateye.flume.rocketmq.RocketmqSink;
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
-import com.ganji.cateye.flume.scribe.simple.EventToLogEntrySerializer;
+import com.ganji.cateye.flume.scribe.single.EventToLogEntrySerializer;
 import com.ganji.cateye.utils.Stats;
 
 public class Entry {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.ganji.cateye.flume.scribe.simple;
+package com.ganji.cateye.flume.scribe.single;
 
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 import com.ganji.cateye.flume.scribe.thrift.*;

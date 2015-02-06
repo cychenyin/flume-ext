@@ -20,6 +20,4 @@ public class SimpleScribeSink extends AbstractRpcSink
         logger.info("Attempting to create SimpleScribeSink Rpc client.");
         return RpcClientFactory.getInstance(props);
     }
-
-
 }
