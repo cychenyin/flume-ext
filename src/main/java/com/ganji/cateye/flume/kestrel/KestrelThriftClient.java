@@ -6,10 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import net.lag.kestrel.thrift.Item;
-import net.lag.kestrel.thrift.Kestrel;
-import net.lag.kestrel.thrift.QueueInfo;
-import net.lag.kestrel.thrift.Status;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;

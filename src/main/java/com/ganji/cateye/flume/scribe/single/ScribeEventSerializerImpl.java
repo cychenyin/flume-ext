@@ -25,16 +25,18 @@ import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.conf.ComponentConfiguration;
 
-import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
-import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+//import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
+//import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
+import org.apache.flume.source.scribe.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
  
-public class EventToLogEntrySerializer implements FlumeEventSerializer {
-    private static final Logger logger = LoggerFactory.getLogger(EventToLogEntrySerializer.class.getName());
+public class ScribeEventSerializerImpl implements ScribeEventSerializer {
+    private static final Logger logger = LoggerFactory.getLogger(ScribeEventSerializerImpl.class.getName());
+	
 	private String scribeCategoryHeaderKey;
 
 	@Override

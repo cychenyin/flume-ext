@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume;
+package com.ganji.cateye.flume.scribe;
 
 import java.nio.ByteBuffer;
 
@@ -11,7 +11,8 @@ import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
 
 import com.ganji.cateye.flume.kestrel.KestrelSinkConsts;
-import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+//import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+import org.apache.flume.source.scribe.*;
 import com.google.common.base.Charsets;
 
 public class ScribeSerializer implements MessageSerializer {

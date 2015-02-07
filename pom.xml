@@ -122,11 +122,6 @@
 			<version>1.9.0</version> </dependency> -->
 		<!-- <dependency> <groupId>org.apache.lucene</groupId> <artifactId>lucene-analyzers-common</artifactId> 
 			<version>4.3.0</version> </dependency> -->
-		<dependency>
-			<groupId>com.alibaba.rocketmq</groupId>
-			<artifactId>rocketmq-client</artifactId>
-			<version>3.1.5</version>
-		</dependency>
 		<!-- <dependency>
 			<groupId>com.alibaba.rocketmq</groupId>
 			<artifactId>rocketmq-all</artifactId>
@@ -138,27 +133,6 @@
 			<artifactId>rocketmq-example</artifactId>
 			<version>3.1.5</version>
 		</dependency> -->
-		<dependency>
-			<groupId>com.alibaba.rocketmq</groupId>
-			<artifactId>rocketmq-remoting</artifactId>
-			<version>3.1.5</version>
-			<exclusions>
-				<exclusion>
-					<artifactId>slf4j-api</artifactId>
-					<groupId>org.slf4j</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.alibaba.rocketmq</groupId>
-			<artifactId>rocketmq-store</artifactId>
-			<version>3.1.5</version>
-		</dependency>
-		<dependency>
-			<groupId>com.alibaba.rocketmq</groupId>
-			<artifactId>rocketmq-filtersrv</artifactId>
-			<version>3.1.5</version>
-		</dependency>
 		<!-- <dependency> <groupId>org.apache.log4j.scribe</groupId> <artifactId>scribelog4j</artifactId> 
 			<version>1.0</version> </dependency> -->
 		<!-- <dependency>

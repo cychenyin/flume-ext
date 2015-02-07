@@ -19,8 +19,9 @@
 package com.ganji.cateye.flume.scribe.single;
 
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
-import com.ganji.cateye.flume.scribe.thrift.*;
-import com.ganji.cateye.flume.scribe.thrift.scribe.AsyncClient;
+//import com.ganji.cateye.flume.scribe.thrift.*;
+//import com.ganji.cateye.flume.scribe.thrift.scribe.AsyncClient;
+import org.apache.flume.source.scribe.*;
 import com.google.common.base.Throwables;
 import org.apache.flume.Channel;
 import org.apache.flume.ChannelException;
@@ -55,8 +56,8 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
     private static final Logger logger = LoggerFactory.getLogger(ScribeSink.class);
     private long batchSize = 1;
     private SinkCounter sinkCounter;
-    private FlumeEventSerializer serializer;
-    private AsyncClient client;
+    private ScribeEventSerializer serializer;
+    private Scribe.AsyncClient client;
     private TAsyncClientManager clientManager;
     private TNonblockingTransport transport;
     private long timeout;
@@ -67,14 +68,14 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
         setName(name);
         sinkCounter = new SinkCounter(name);
         batchSize = context.getLong(ScribeSinkConsts.CONFIG_BATCHSIZE, 1L);
-        String clazz = context.getString(ScribeSinkConsts.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
+        String clazz = context.getString(ScribeSinkConsts.CONFIG_SERIALIZER, ScribeEventSerializerImpl.class.getName());
 
         try {
-            serializer = (FlumeEventSerializer)Class.forName(clazz).newInstance();
+            serializer = (ScribeEventSerializer)Class.forName(clazz).newInstance();
         }
         catch (Exception ex) {
             logger.warn("Defaulting to EventToLogEntrySerializer", ex);
-            serializer = new EventToLogEntrySerializer();
+            serializer = new ScribeEventSerializerImpl();
         }
         finally {
             serializer.configure(context);
@@ -98,7 +99,7 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
     public synchronized void start() {
         super.start();
         sinkCounter.start();
-        client = new scribe.AsyncClient(new TBinaryProtocol.Factory(), clientManager, transport);
+        client = new Scribe.AsyncClient(new TBinaryProtocol.Factory(), clientManager, transport);
     }
 
     @Override
@@ -118,7 +119,7 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
         AtomicInteger callbacksExpected = new AtomicInteger(0);
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        final AsyncCallBack<scribe.AsyncClient.Log_call> cb = new AsyncCallBack(lock, condition, callbacksReceived, txnFail);
+        final AsyncCallBack<Scribe.AsyncClient.Log_call> cb = new AsyncCallBack(lock, condition, callbacksReceived, txnFail);
         Status status = Status.READY;
         Channel channel = getChannel();
         List<LogEntry> eventList = new ArrayList<LogEntry>();

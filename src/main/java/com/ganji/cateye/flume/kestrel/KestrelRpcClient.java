@@ -16,14 +16,15 @@ import org.apache.flume.Event;
 import org.apache.flume.FlumeException;
 import org.apache.flume.api.HostInfo;
 import org.apache.flume.api.RpcClientConfigurationConstants;
+import org.apache.flume.source.scribe.LogEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
-import com.ganji.cateye.flume.MessageSerializer;
-import com.ganji.cateye.flume.PlainMessageSerializer;
-import com.ganji.cateye.flume.ScribeSerializer;
-import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+import com.ganji.cateye.flume.scribe.MessageSerializer;
+import com.ganji.cateye.flume.scribe.PlainMessageSerializer;
+import com.ganji.cateye.flume.scribe.ScribeSerializer;
+//import com.ganji.cateye.flume.scribe.thrift.LogEntry;
 
 /**
  * KestrelRpcClient

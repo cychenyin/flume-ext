@@ -20,12 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
-import com.ganji.cateye.flume.MessageSerializer;
-import com.ganji.cateye.flume.PlainMessageSerializer;
-import com.ganji.cateye.flume.ScribeSerializer;
-import com.ganji.cateye.flume.scribe.thrift.LogEntry;
-import com.ganji.cateye.flume.scribe.thrift.ResultCode;
-import com.ganji.cateye.flume.scribe.thrift.scribe;
+//import com.ganji.cateye.flume.scribe.thrift.LogEntry;
+//import com.ganji.cateye.flume.scribe.thrift.ResultCode;
+//import com.ganji.cateye.flume.scribe.thrift.scribe;
+import org.apache.flume.source.scribe.*;
 
 /**
  * ScribeRpcClient 保证事务状态
@@ -42,7 +40,8 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 	private String serializerName = "scribe";
 	private MessageSerializer serializer = null;
 
-	private scribe.Client client;
+	// private scribe.Client client;
+	private org.apache.flume.source.scribe.Scribe.Client client;
 	private TTransport transport;
 
 	public ScribeRpcClient() {
@@ -103,7 +102,7 @@ public class ScribeRpcClient extends AbstractMultiThreadRpcClient {
 			try {
 				// logger.debug("scribeSink.host={} port={}", hostname, port);
 				transport = new TFramedTransport(new TSocket(new Socket(hostname, port)));
-				client = new scribe.Client(new TBinaryProtocol(transport, false, false));
+				client = new Scribe.Client(new TBinaryProtocol(transport, false, false));
 				// logger.debug("scribeSink has created transport succesfully");
 			} catch (SocketException ex) {
 				logger.warn("Unable to create Thrift Transport cause of socket exception. sleep 1s then. host=" + hostname + ":port=" + port, ex);

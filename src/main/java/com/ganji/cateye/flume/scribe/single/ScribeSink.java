@@ -18,6 +18,10 @@
  */
 package com.ganji.cateye.flume.scribe.single;
 
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.flume.Channel;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
@@ -26,19 +30,18 @@ import org.apache.flume.Transaction;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.instrumentation.SinkCounter;
 import org.apache.flume.sink.AbstractSink;
+import org.apache.flume.source.scribe.LogEntry;
+import org.apache.flume.source.scribe.ResultCode;
+import org.apache.flume.source.scribe.Scribe;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
-import com.ganji.cateye.flume.scribe.thrift.*;
+//import com.ganji.cateye.flume.scribe.thrift.*;
 
 /**
  * Synchronous Sink that forwards messages to a scribe listener.
@@ -50,8 +53,8 @@ public class ScribeSink extends AbstractSink implements Configurable {
 	private static final Logger logger = LoggerFactory.getLogger(ScribeSink.class);
 	private long batchSize = 1;
 	private SinkCounter sinkCounter;
-	private FlumeEventSerializer serializer;
-	private scribe.Client client;
+	private ScribeEventSerializer serializer;
+	private Scribe.Client client;
 	private TTransport transport;
 
 	@Override
@@ -60,13 +63,13 @@ public class ScribeSink extends AbstractSink implements Configurable {
 //		setName(name);
 		sinkCounter = new SinkCounter(getName());
 		batchSize = context.getLong(ScribeSinkConsts.CONFIG_BATCHSIZE, 1L);
-		String clazz = context.getString(ScribeSinkConsts.CONFIG_SERIALIZER, EventToLogEntrySerializer.class.getName());
+		String clazz = context.getString(ScribeSinkConsts.CONFIG_SERIALIZER, ScribeEventSerializerImpl.class.getName());
 
 		try {
-			serializer = (FlumeEventSerializer) Class.forName(clazz).newInstance();
+			serializer = (ScribeEventSerializer) Class.forName(clazz).newInstance();
 		} catch (Exception ex) {
 			logger.warn("fail to reflact serializer via config; use EventToLogEntrySerializer default value in instead of it.", ex);
-			serializer = new EventToLogEntrySerializer();
+			serializer = new ScribeEventSerializerImpl();
 		} finally {
 			serializer.configure(context);
 		}
@@ -87,7 +90,7 @@ public class ScribeSink extends AbstractSink implements Configurable {
 	@Override
 	public synchronized void start() {
 		super.start();
-		client = new scribe.Client(new TBinaryProtocol(transport, false, false));
+		client = new Scribe.Client(new TBinaryProtocol(transport, false, false));
 		sinkCounter.start();
 	}
 
