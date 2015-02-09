@@ -1,10 +1,11 @@
-package com.ganji.cateye.flume.scribe;
+package com.ganji.cateye.flume;
 
 import java.nio.ByteBuffer;
 
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TMemoryBuffer;
 import org.apache.thrift.transport.TMemoryInputTransport;
@@ -28,7 +29,7 @@ public class ScribeSerializer implements MessageSerializer {
 	public ByteBuffer encodeToByteBuffer(LogEntry log, boolean compress) {
 		TMemoryBuffer buffer = new TMemoryBuffer(1024);
 		try {
-			log.write(new TCompactProtocol(buffer));
+			log.write(new TBinaryProtocol(buffer));
 		} catch (TException e) {
 			e.printStackTrace();
 			return null;

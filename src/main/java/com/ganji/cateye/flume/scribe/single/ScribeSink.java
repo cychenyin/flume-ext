@@ -40,6 +40,8 @@ import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ganji.cateye.flume.ScribeSerializer;
+import com.ganji.cateye.flume.SinkConsts;
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 //import com.ganji.cateye.flume.scribe.thrift.*;
 
@@ -48,12 +50,19 @@ import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
  * <p>
  * The use case for this sink is to maintain backward compatibility with scribe consumers when there is a desire to migrate from Scribe
  * middleware to FlumeNG.
+ * agent
+ * agent.sinks.k1.type = com.ganji.cateye.flume.scribe.single.ScribeSink
+ * agent.sinks.k1.channel = c1 
+ * agent.sinks.k1.hostname = 127.0.0.1
+ * agent.sinks.k1.port = 31463
+ * agent.sinks.k1.batch-size = 200
+ * agent.sinks.k1.scribe.category.header=category
  */
 public class ScribeSink extends AbstractSink implements Configurable {
 	private static final Logger logger = LoggerFactory.getLogger(ScribeSink.class);
 	private long batchSize = 1;
 	private SinkCounter sinkCounter;
-	private ScribeEventSerializer serializer;
+	private ScribeSerializer serializer;
 	private Scribe.Client client;
 	private TTransport transport;
 
@@ -63,22 +72,15 @@ public class ScribeSink extends AbstractSink implements Configurable {
 //		setName(name);
 		sinkCounter = new SinkCounter(getName());
 		batchSize = context.getLong(ScribeSinkConsts.CONFIG_BATCHSIZE, 1L);
-		String clazz = context.getString(ScribeSinkConsts.CONFIG_SERIALIZER, ScribeEventSerializerImpl.class.getName());
+		serializer = new ScribeSerializer();
+		serializer.configure(context);
 
-		try {
-			serializer = (ScribeEventSerializer) Class.forName(clazz).newInstance();
-		} catch (Exception ex) {
-			logger.warn("fail to reflact serializer via config; use EventToLogEntrySerializer default value in instead of it.", ex);
-			serializer = new ScribeEventSerializerImpl();
-		} finally {
-			serializer.configure(context);
-		}
-
+		
 		String host = context.getString(ScribeSinkConsts.CONFIG_HOSTNAME);
 		int port = context.getInteger(ScribeSinkConsts.CONFIG_PORT);
 
 		try {
-			logger.warn("scribeSink.host={} port={}", host, port);
+			logger.warn("single.ScribeSink.host={} port={}", host, port);
 			transport = new TFramedTransport(new TSocket(new Socket(host, port)));
 			logger.warn("scribeSink has created transport");
 		} catch (Exception ex) {

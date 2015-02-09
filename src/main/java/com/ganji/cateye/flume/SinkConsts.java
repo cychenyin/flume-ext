@@ -19,5 +19,8 @@ public class SinkConsts {
     public static final String CONFIG_ACCURATE_PROCESS_STATUS = "accurate_process_status";
     public static final boolean DEFAULT_ACCURATE_PROCESS_STATUS = true;
 
+	public static final String CONFIG_CATEGORY_HEADER = "scribe.category.header";
+	public static final String DEFAULT_CATEGORY_HEADER = "category";
+
     
 }

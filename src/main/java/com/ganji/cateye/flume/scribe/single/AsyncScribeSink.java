@@ -18,6 +18,8 @@
  */
 package com.ganji.cateye.flume.scribe.single;
 
+import com.ganji.cateye.flume.ScribeSerializer;
+import com.ganji.cateye.flume.SinkConsts;
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 //import com.ganji.cateye.flume.scribe.thrift.*;
 //import com.ganji.cateye.flume.scribe.thrift.scribe.AsyncClient;
@@ -56,7 +58,7 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
     private static final Logger logger = LoggerFactory.getLogger(ScribeSink.class);
     private long batchSize = 1;
     private SinkCounter sinkCounter;
-    private ScribeEventSerializer serializer;
+    private ScribeSerializer serializer;
     private Scribe.AsyncClient client;
     private TAsyncClientManager clientManager;
     private TNonblockingTransport transport;
@@ -68,19 +70,10 @@ public class AsyncScribeSink extends AbstractSink implements Configurable {
         setName(name);
         sinkCounter = new SinkCounter(name);
         batchSize = context.getLong(ScribeSinkConsts.CONFIG_BATCHSIZE, 1L);
-        String clazz = context.getString(ScribeSinkConsts.CONFIG_SERIALIZER, ScribeEventSerializerImpl.class.getName());
 
-        try {
-            serializer = (ScribeEventSerializer)Class.forName(clazz).newInstance();
-        }
-        catch (Exception ex) {
-            logger.warn("Defaulting to EventToLogEntrySerializer", ex);
-            serializer = new ScribeEventSerializerImpl();
-        }
-        finally {
-            serializer.configure(context);
-        }
-
+		serializer = new ScribeSerializer();
+		serializer.configure(context);
+        
         String host = context.getString(ScribeSinkConsts.CONFIG_HOSTNAME);
         int port = context.getInteger(ScribeSinkConsts.CONFIG_PORT);
         timeout = context.getInteger(ScribeSinkConsts.CONFIG_SCRIBE_TIMEOUT, 1000);
