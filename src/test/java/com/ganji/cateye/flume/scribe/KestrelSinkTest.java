@@ -427,8 +427,8 @@ public class KestrelSinkTest {
 		ctx.put(KestrelSinkConsts.CONFIG_HOSTNAME, "10.7.5.31");
 		ctx.put(KestrelSinkConsts.CONFIG_PORT, "2229");
 		ctx.put(KestrelSinkConsts.CONFIG_SERIALIZER, "scribe");
-		ctx.put(KestrelSinkConsts.CONFIG_BATCHSIZE, "10");
-
+		ctx.put("batch-size", String.valueOf(100));
+		
 		ctx.put(KestrelSinkConsts.CONFIG_ROUTES, "q1 q2");
 		ctx.put("route.q1.categories", "cateye.x cateye.y* cateye.a*");
 		ctx.put("route.q1.queue", "flume1");

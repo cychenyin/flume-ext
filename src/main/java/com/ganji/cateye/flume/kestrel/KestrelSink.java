@@ -8,20 +8,31 @@ import org.apache.flume.api.RpcClientFactory;
 import org.apache.flume.sink.AbstractRpcSink;
 
 /**
- * ScribeSink
- * agent.sinks.k1.type = com.ganji.cateye.flume.scribe2.ScribeSink
+ * KestrelSink
+ * 	send scribe logEntry to kestrel
+ * 	configuration example:
+ * agent.sinks.k1.type = com.ganji.cateye.flume.kestrel.KestrelSink
  * agent.sinks.k1.channel = c1 
  * agent.sinks.k1.hostname = 127.0.0.1
- * agent.sinks.k1.port = 31463
- * agent.sinks.k1.scribe.category.header=category
- * agent.sinks.k1.batch-size = 5555
- * // default batch-size=100
- * agent.sinks.k1.maxConnections=5
- *  // default maxConnections=5
- * agent.sinks.k1.request-timeout=3 * 1000
- *  // request-timeout=20s
+ * agent.sinks.k1.port = 2229
+ * agent.sinks.k1.maxConnections = 1
+ * agent.sinks.k1.batch-size = 9999
+ * agent.sinks.k1.request-timeout = 5000 
+ * agent.sinks.k1.hostname = localhost
+ * agent.sinks.k1.port = 2229
+ * agent.sinks.k1.serializer = plain-message
+ * agent.sinks.k1.scribe.category.header = category
+ * agent.sinks.k1.routes = pv wap rta test
+ * agent.sinks.k1.route.pv.categories = ms.pv
+ * agent.sinks.k1.route.pv.queue = rta-pvlog-1
+ * agent.sinks.k1.route.wap.categories = mobile.wap.pv
+ * agent.sinks.k1.route.wap.queue = rta-waplog
+ * agent.sinks.k1.route.rta.categories = rta.mobile.client.*
+ * agent.sinks.k1.route.rta.queue = rta-wap-pvlog-1
+ * agent.sinks.k1.route.test.categories = test.*
+ * agent.sinks.k1.route.test.queue = ftest  
  * @author asdf
- *
+ * 2015-02-10
  */
 public class KestrelSink extends AbstractRpcSink
 {

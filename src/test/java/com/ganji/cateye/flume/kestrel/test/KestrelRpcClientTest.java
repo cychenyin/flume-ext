@@ -65,7 +65,7 @@ public class KestrelRpcClientTest {
 		ctx.put(KestrelSinkConsts.CONFIG_HOSTNAME, "10.7.5.31");
 		ctx.put(KestrelSinkConsts.CONFIG_PORT, "2229");
 		ctx.put(KestrelSinkConsts.CONFIG_SERIALIZER, "scribe");
-		ctx.put(KestrelSinkConsts.CONFIG_BATCHSIZE, String.valueOf(100));
+		ctx.put("batch-size", String.valueOf(100));
 
 		ctx.put(KestrelSinkConsts.CONFIG_ROUTES, "q1 q2");
 		ctx.put("route.q1.categories", "cateye.a* cateye.x cateye.y*");

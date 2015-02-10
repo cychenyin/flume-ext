@@ -321,10 +321,10 @@ public class KestrelRpcClient extends AbstractRpcClient {
 			// serialization
 			String serializerName = properties.getProperty(KestrelSinkConsts.CONFIG_SERIALIZER, KestrelSinkConsts.DEFAULT_SERIALIZER);
 			if (serializerName.equalsIgnoreCase(KestrelSinkConsts.DEFAULT_SERIALIZER)) {
-				serializer = new ScribeSerializer();
-			}
-			else if (serializerName.equalsIgnoreCase("plain-message")) {
 				serializer = new PlainMessageSerializer();
+			}
+			else if (serializerName.equalsIgnoreCase("scribe")) {
+				serializer = new ScribeSerializer();
 			}
 			else {
 				try {

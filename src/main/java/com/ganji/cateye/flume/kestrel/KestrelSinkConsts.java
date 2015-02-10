@@ -18,11 +18,8 @@ public final class KestrelSinkConsts extends SinkConsts {
 	public static final String DEFAULT_COMPRESS = "False";
 
 	public static final String CONFIG_SERIALIZER = "serializer";
-	public static final String DEFAULT_SERIALIZER = "scribe";
+	public static final String DEFAULT_SERIALIZER = "plain-message";
 	
-	public static final String CONFIG_BATCHSIZE = "batchSize";
-	public static final String DEFAULT_BATCHSIZE = "50";
-
 	// 配置category到kestrel queue的路由
 	public static final String CONFIG_ROUTES = "routes";
 	public static final String CONFIG_ROUTE_PREFIX = "route.";
