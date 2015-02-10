@@ -138,10 +138,13 @@ public class ScribeSink extends AbstractSink implements Configurable {
 			if (rc.equals(ResultCode.OK)) {
 				transaction.commit();
 				sinkCounter.addToEventDrainSuccessCount(eventList.size());
+				if(logger.isInfoEnabled()) {
+					logger.info(String.format("%s success send events %d", this.getName(), eventList.size()));
+				}
 			}
 		} catch (Throwable e) {
 			transaction.rollback();
-			logger.error("exception while processing in Scribe Sink", e);
+			logger.error(this.getName() + " exception while processing in Scribe Sink", e);
 			throw new EventDeliveryException("Failed to send message", e);
 		} finally {
 			transaction.close();

@@ -1,48 +1,39 @@
-/*
- */
+/*jadclipse*/// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
 
 package com.ganji.cateye.flume.scribe;
 
 import java.util.Properties;
-
 import org.apache.flume.api.RpcClient;
-import org.apache.flume.api.RpcClientConfigurationConstants;
 import org.apache.flume.api.RpcClientFactory;
 import org.apache.flume.sink.AbstractRpcSink;
-import org.apache.flume.sink.NullSink;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.ganji.cateye.flume.AbstractMultiThreadRpcClient;
-import com.ganji.cateye.flume.AbstractMultiThreadRpcSink;
-
-/*
- * Scribe sink @see ScribeRpcClient 
- * 示例： 
- * agent.sinks.statSink.type = com.ganji.cateye.flume.kestrel.KestrelSink 
- * agent.sinks.statSink.channel = c2 
- * agent.sinks.statSink.batchSize = 50 
- * agent.sinks.statSink.hostname = 10.7.5.31 
- * agent.sinks.statSink.port = 2229
- * agent.sinks.statSink.serializer = scribe 
- * agent.sinks.statSink.scribe.category.header = category
+/**
+ * ScribeSink
+ * agent.sinks.k1.type = com.ganji.cateye.flume.scribe2.ScribeSink
+ * agent.sinks.k1.channel = c1 
+ * agent.sinks.k1.hostname = 127.0.0.1
+ * agent.sinks.k1.port = 31463
+ * agent.sinks.k1.scribe.category.header=category
+ * agent.sinks.k1.batch-size = 5555
+ * // default batch-size=100
+ * agent.sinks.k1.maxConnections=5
+ *  // default maxConnections=5
+ * agent.sinks.k1.request-timeout=3 * 1000
+ *  // request-timeout=20s
+ * @author asdf
+ *
  */
-public class ScribeSink extends AbstractMultiThreadRpcSink {
-	private static final Logger logger = LoggerFactory.getLogger(ScribeSink.class);
+public class ScribeSink extends AbstractRpcSink
+{
 
-	@Override
-	protected AbstractMultiThreadRpcClient initializeRpcClient(Properties props) {
-		if (!props.containsKey(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE)) {
-			props.setProperty(RpcClientConfigurationConstants.CONFIG_CLIENT_TYPE,
-					ScribeRpcClient.class.getCanonicalName());
-		}
-		// set or override setting here.
-		AbstractMultiThreadRpcClient ret = null;
-		ret = (AbstractMultiThreadRpcClient) RpcClientFactory.getInstance(props);
-		// try {
-		// } catch (Throwable e) {
-		// logger.error("fail to create kestrel rpc client.", e);
-		// }
-		return ret;
-	}
+    public ScribeSink()
+    {
+    }
+
+    protected RpcClient initializeRpcClient(Properties props)
+    {
+        props.setProperty("client.type", com.ganji.cateye.flume.scribe.ScribeRpcClient.class.getCanonicalName());
+        // props.setProperty("maxConnections", String.valueOf(1));
+        return RpcClientFactory.getInstance(props);
+    }
 }

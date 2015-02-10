@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume.scribe;
+package com.ganji.cateye.flume.kestrel.test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +9,7 @@ import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.api.RpcClientConfigurationConstants;
+import org.apache.flume.api.RpcClientFactory;
 import org.apache.flume.event.SimpleEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -80,9 +81,9 @@ public class KestrelRpcClientTest {
 		for (Entry<String, String> entry : ctx.getParameters().entrySet()) {
 			props.setProperty(entry.getKey(), entry.getValue());
 		}
-		client = new KestrelRpcClient();
-		client.configure(props);
+		props.setProperty("client.type", KestrelRpcClient.class.getCanonicalName());
 		
+		client = (KestrelRpcClient)RpcClientFactory.getInstance(props);
 	}
 
 	@After

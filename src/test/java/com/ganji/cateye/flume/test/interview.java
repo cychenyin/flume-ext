@@ -1,4 +1,4 @@
-package com.ganji.cateye.flume.unittest;
+package com.ganji.cateye.flume.test;
 
 public class interview {
 	
