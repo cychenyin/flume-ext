@@ -207,10 +207,9 @@ public class ScribeRpcClient extends AbstractRpcClient {
 				logs.add(e);
 				ResultCode result = client.client.Log(logs);
 				if (result != ResultCode.OK) {
-					logger.warn(" scribe client send return " + result.name());
-					throw new EventDeliveryException("Failed to deliver events. Server returned status : " + result.name());
+					throw new EventDeliveryException(String.format("ScribeRpcClient Failed to deliver a event to %s:%d. Server returned status : %s", hostname, port, result.name()));
 				} else if(logger.isInfoEnabled()) {
-					logger.info(String.format("scribe client success send event 1"));
+					logger.info(String.format("scribe client success send 1 event."));
 				}
 				return null;
 			}
@@ -224,8 +223,7 @@ public class ScribeRpcClient extends AbstractRpcClient {
 			public Void call() throws Exception {
 				ResultCode result = client.client.Log(e);
 				if (result != ResultCode.OK) {
-					logger.warn(String.format(" scribe client %d send return %s", client.hashCode(), result.name()));
-					throw new EventDeliveryException("Failed to deliver events. Server returned status : " + result.name());
+					throw new EventDeliveryException(String.format("ScribeRpcClient Failed to deliver events to %s:%d. Server returned status : %s", hostname, port, result.name()));
 				} else if(logger.isInfoEnabled()) {
 					logger.info(String.format("scribe client %d success send events %d", client.hashCode(), e.size()));
 				}

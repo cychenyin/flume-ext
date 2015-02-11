@@ -84,7 +84,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 	private final Random random = new Random();
 	private MessageSerializer serializer;
 	RouteConfig routes = new RouteConfig();
-
+	
 	public KestrelRpcClient() {
 		stateLock = new ReentrantLock(true);
 		connState = State.INIT;
@@ -199,13 +199,18 @@ public class KestrelRpcClient extends AbstractRpcClient {
 				String queue = routes.route(log.category);
 				List<ByteBuffer> list = new ArrayList<ByteBuffer>();
 				list.add(serializer.encodeToByteBuffer(log, false));
-				int result = client.client.put(queue, list, 0);
-				if (result != 1) {
-					logger.warn(" kestrel client send return " + String.valueOf(result) + " [should be 1]");
-					throw new EventDeliveryException("Failed to deliver events. Server returned status : " + String.valueOf(result) + " [should be 1]");
-				} else if(logger.isInfoEnabled()) {
+				try {
+					client.client.put(queue, list, 0);
 					logger.info(String.format("kestrel client success send event 1"));
+				}catch(Throwable e) {
+					throw new EventDeliveryException("KestrelRpcClient Failed to deliver events. ", e);
 				}
+//				if (result != 1) {
+//					logger.warn(" kestrel client send return " + String.valueOf(result) + " [should be 1]");
+//					throw new EventDeliveryException("Failed to deliver events. Server returned status : " + String.valueOf(result) + " [should be 1]");
+//				} else if(logger.isInfoEnabled()) {
+//					logger.info(String.format("kestrel client success send event 1"));
+//				}
 				return null;
 			}
 		});
@@ -230,19 +235,23 @@ public class KestrelRpcClient extends AbstractRpcClient {
 						list.add(serializer.encodeToByteBuffer(log, false));
 					}
 				}
-				// send
-				int result = 0;
-				for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
-					result += client.client.put(e.getKey(), e.getValue(), 0);
-				}
-
-				if (result != e.size()) {
-					String msg = String.format(" kestrel client %d send return %d [should be %d]", client.hashCode(), result, e.size());
-					logger.warn(msg);
-					throw new EventDeliveryException("Failed to deliver events. " + msg);
-				} else if(logger.isInfoEnabled()) {
+				try {
+					// send
+					int result = 0;
+					for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
+						result += client.client.put(e.getKey(), e.getValue(), 0);
+					}
 					logger.info(String.format("kestrel client %d success send events %d", client.hashCode(), e.size()));
+				} catch(Throwable e) {
+					throw new EventDeliveryException(String.format("KestrelRpcClient Failed to deliver events to. %s:%d", hostname, port), e);
 				}
+//				if (result != e.size()) {
+//					String msg = String.format(" kestrel client %d send return %d [should be %d]", client.hashCode(), result, e.size());
+//					logger.warn(msg);
+//					throw new EventDeliveryException("Failed to deliver events. " + msg);
+//				} else if(logger.isInfoEnabled()) {
+//					logger.info(String.format("kestrel client %d success send events %d", client.hashCode(), e.size()));
+//				}
 
 				return null;
 			}
