@@ -67,6 +67,7 @@ import com.ganji.cateye.flume.MessageSerializer;
 import com.ganji.cateye.flume.PlainMessageSerializer;
 import com.ganji.cateye.flume.ScribeSerializer;
 import com.ganji.cateye.flume.SinkConsts;
+import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 
 public class KestrelRpcClient extends AbstractRpcClient {
 	private static final Logger logger = LoggerFactory.getLogger(KestrelRpcClient.class);
@@ -84,6 +85,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 	private final Random random = new Random();
 	private MessageSerializer serializer;
 	RouteConfig routes = new RouteConfig();
+	private String sinkName = "";
 	
 	public KestrelRpcClient() {
 		stateLock = new ReentrantLock(true);
@@ -96,7 +98,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 			@Override
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
-				t.setName("ScribeRpcClientThread-" + String.valueOf(threadCounter.incrementAndGet()));
+				t.setName(KestrelRpcClient.this.sinkName + "-" + String.valueOf(threadCounter.incrementAndGet()));
 				return t;
 			}
 		});
@@ -201,15 +203,15 @@ public class KestrelRpcClient extends AbstractRpcClient {
 				list.add(serializer.encodeToByteBuffer(log, false));
 				try {
 					client.client.put(queue, list, 0);
-					logger.info(String.format("kestrel client success send event 1"));
+					logger.info(String.format("[%s] kestrel client success send event 1", KestrelRpcClient.this.sinkName));
 				}catch(Throwable e) {
-					throw new EventDeliveryException("KestrelRpcClient Failed to deliver events. ", e);
+					throw new EventDeliveryException(String.format("[%s] KestrelRpcClient Failed to deliver events. ", KestrelRpcClient.this.sinkName), e);
 				}
 //				if (result != 1) {
-//					logger.warn(" kestrel client send return " + String.valueOf(result) + " [should be 1]");
+//					logger.warn(KestrelRpcClient.this.sinkName + " kestrel client send return " + String.valueOf(result) + " [should be 1]");
 //					throw new EventDeliveryException("Failed to deliver events. Server returned status : " + String.valueOf(result) + " [should be 1]");
 //				} else if(logger.isInfoEnabled()) {
-//					logger.info(String.format("kestrel client success send event 1"));
+//					logger.info(String.format("[%s] kestrel client success send event 1", KestrelRpcClient.this.sinkName));
 //				}
 				return null;
 			}
@@ -241,16 +243,16 @@ public class KestrelRpcClient extends AbstractRpcClient {
 					for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
 						result += client.client.put(e.getKey(), e.getValue(), 0);
 					}
-					logger.info(String.format("kestrel client %d success send events %d", client.hashCode(), e.size()));
+					logger.info(String.format("[%s] kestrel client %d success send events %d", KestrelRpcClient.this.sinkName, client.hashCode(), e.size()));
 				} catch(Throwable e) {
-					throw new EventDeliveryException(String.format("KestrelRpcClient Failed to deliver events to. %s:%d", hostname, port), e);
+					throw new EventDeliveryException(String.format("[%s] KestrelRpcClient Failed to deliver events to. %s:%d", KestrelRpcClient.this.sinkName, hostname, port), e);
 				}
 //				if (result != e.size()) {
-//					String msg = String.format(" kestrel client %d send return %d [should be %d]", client.hashCode(), result, e.size());
+//					String msg = String.format(KestrelRpcClient.this.sinkName+ " kestrel client %d send return %d [should be %d]", client.hashCode(), result, e.size());
 //					logger.warn(msg);
-//					throw new EventDeliveryException("Failed to deliver events. " + msg);
+//					throw new EventDeliveryException(KestrelRpcClient.this.sinkName +" Failed to deliver events. " + msg);
 //				} else if(logger.isInfoEnabled()) {
-//					logger.info(String.format("kestrel client %d success send events %d", client.hashCode(), e.size()));
+//					logger.info(String.format("[%s] kestrel client %d success send events %d", KestrelRpcClient.this.sinkName, client.hashCode(), e.size()));
 //				}
 
 				return null;
@@ -285,7 +287,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 			} else if (ex instanceof RuntimeException) {
 				throw (RuntimeException) ex;
 			}
-			throw new FlumeException("Failed to close RPC client. ", ex);
+			throw new FlumeException(String.format("[%s] Failed to close RPC client. ", this.sinkName), ex);
 		} finally {
 			stateLock.unlock();
 		}
@@ -298,6 +300,8 @@ public class KestrelRpcClient extends AbstractRpcClient {
 		}
 		stateLock.lock();
 		try {
+			this.sinkName = properties.getProperty(ScribeSinkConsts.CONFIG_SINK_NAME, "sink-" + hashCode());
+
 			List<HostInfo> hosts = HostInfo.getHostInfoList(properties);
 			if (hosts.size() > 0) {
 				HostInfo host = hosts.get(0);
@@ -315,14 +319,14 @@ public class KestrelRpcClient extends AbstractRpcClient {
 					String.valueOf(
 							RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
 			if (requestTimeout < 1000) {
-				logger.warn("Request timeout specified less than 1s. Using default value instead.");
+				logger.warn(String.format("[%s] Request timeout specified less than 1s. Using default value instead.", this.sinkName));
 				requestTimeout = RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS;
 			}
 			connectionPoolSize = Integer.parseInt(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE)));
 			if (connectionPoolSize < 1) {
-				logger.warn("Connection Pool Size specified is less than 1. Using default value instead.");
+				logger.warn(String.format("[%s] Connection Pool Size specified is less than 1. Using default value instead.", this.sinkName));
 				connectionPoolSize = RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE;
 			}
 			connectionManager = new ConnectionPoolManager(connectionPoolSize);
@@ -339,7 +343,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 				try {
 					serializer = (MessageSerializer) Class.forName(serializerName).newInstance();
 				} catch (Exception ex) {
-					throw new RuntimeException("invalid serializer specified", ex);
+					throw new RuntimeException(String.format("[%s] invalid serializer specified", this.sinkName), ex);
 				}
 			}
 			Context context = new Context();
@@ -350,7 +354,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 			// routes
 			String rs = properties.getProperty(KestrelSinkConsts.CONFIG_ROUTES, "");
 			if (StringUtils.isEmpty(rs))
-				throw new FlumeException("routes of KestrelRpcClient not configed");
+				throw new FlumeException(String.format("[%s] routes of KestrelRpcClient not configed", this.sinkName));
 			String[] arrRoute = rs.split(RouteConfig.SPLITTER);
 			for (String route : arrRoute) {
 				if (route.isEmpty())
@@ -369,7 +373,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 			} else if (ex instanceof RuntimeException) {
 				throw (RuntimeException) ex;
 			}
-			throw new FlumeException("Error while configuring RpcClient. ", ex);
+			throw new FlumeException(String.format("[%s] Error while configuring RpcClient. ", this.sinkName), ex);
 		} finally {
 			stateLock.unlock();
 		}

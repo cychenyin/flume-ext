@@ -4,7 +4,7 @@
 	<!-- parent> <groupId>com.ganji.arch.rta</groupId> <artifactId>Vires</artifactId> 
 		<version>0.0.2-SNAPSHOT</version> </parent -->
 	<groupId>com.ganji.arch.cateye</groupId>
-	<version>1.0.3</version>
+	<version>1.0.4</version>
 	<artifactId>flume-ext</artifactId>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

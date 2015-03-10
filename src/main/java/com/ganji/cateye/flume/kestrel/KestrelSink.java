@@ -3,9 +3,12 @@
 package com.ganji.cateye.flume.kestrel;
 
 import java.util.Properties;
+
 import org.apache.flume.api.RpcClient;
 import org.apache.flume.api.RpcClientFactory;
 import org.apache.flume.sink.AbstractRpcSink;
+
+import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
 
 /**
  * KestrelSink
@@ -45,6 +48,9 @@ public class KestrelSink extends AbstractRpcSink
     {
         props.setProperty("client.type", com.ganji.cateye.flume.kestrel.KestrelRpcClient.class.getCanonicalName());
         // props.setProperty("maxConnections", String.valueOf(1));
+        if(!props.containsKey(ScribeSinkConsts.CONFIG_SINK_NAME)) {
+        	props.setProperty(ScribeSinkConsts.CONFIG_SINK_NAME, this.getName());
+        }
         return RpcClientFactory.getInstance(props);
     }
 }

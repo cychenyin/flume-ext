@@ -81,6 +81,7 @@ public class ScribeRpcClient extends AbstractRpcClient {
 	private int connectionPoolSize;
 	private final Random random = new Random();
 	private ScribeSerializer serializer;
+	private String sinkName = "";
 
 	public ScribeRpcClient() {
 		stateLock = new ReentrantLock(true);
@@ -93,7 +94,7 @@ public class ScribeRpcClient extends AbstractRpcClient {
 			@Override
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
-				t.setName("ScribeRpcClientThread-" + String.valueOf(threadCounter.incrementAndGet()));
+				t.setName( ScribeRpcClient.this.sinkName + "-" + String.valueOf(threadCounter.incrementAndGet()));
 				return t;
 			}
 		});
@@ -112,8 +113,7 @@ public class ScribeRpcClient extends AbstractRpcClient {
 		boolean destroyedClient = false;
 		try {
 			if (!isActive()) {
-				throw new EventDeliveryException("Client was closed due to error. " +
-						"Please create a new client");
+				throw new EventDeliveryException("Client was closed due to error. " + "Please create a new client");
 			}
 			client = connectionManager.checkout();
 			// final ThriftFlumeEvent thriftEvent = new ThriftFlumeEvent(event
@@ -150,7 +150,8 @@ public class ScribeRpcClient extends AbstractRpcClient {
 
 	@Override
 	public void appendBatch(List<Event> events) throws EventDeliveryException {
-		// Thrift IPC client is not thread safe, so don't allow state changes or client.append* calls unless the lock is acquired.
+		// Thrift IPC client is not thread safe, so don't allow state changes or client.append* calls unless the lock is
+		// acquired.
 		ClientWrapper client = null;
 		boolean destroyedClient = false;
 		try {
@@ -207,9 +208,12 @@ public class ScribeRpcClient extends AbstractRpcClient {
 				logs.add(e);
 				ResultCode result = client.client.Log(logs);
 				if (result != ResultCode.OK) {
-					throw new EventDeliveryException(String.format("ScribeRpcClient Failed to deliver a event to %s:%d. Server returned status : %s", hostname, port, result.name()));
-				} else if(logger.isInfoEnabled()) {
-					logger.info(String.format("scribe client success send 1 event."));
+					throw new EventDeliveryException(String.format(
+							"[%s] ScribeRpcClient Failed to deliver a event to %s:%d. Server returned status : %s",
+							ScribeRpcClient.this.sinkName, hostname, port, result.name()));
+				} else if (logger.isInfoEnabled()) {
+					logger.info(String
+							.format("[%s] scribe client successfully sent 1 event.", ScribeRpcClient.this.sinkName));
 				}
 				return null;
 			}
@@ -223,9 +227,12 @@ public class ScribeRpcClient extends AbstractRpcClient {
 			public Void call() throws Exception {
 				ResultCode result = client.client.Log(e);
 				if (result != ResultCode.OK) {
-					throw new EventDeliveryException(String.format("ScribeRpcClient Failed to deliver events to %s:%d. Server returned status : %s", hostname, port, result.name()));
-				} else if(logger.isInfoEnabled()) {
-					logger.info(String.format("scribe client %d success send events %d", client.hashCode(), e.size()));
+					throw new EventDeliveryException(String.format(
+							"[%s] ScribeRpcClient Failed to deliver events to %s:%d. Server returned status : %s",
+							ScribeRpcClient.this.sinkName, hostname, port, result.name()));
+				} else if (logger.isInfoEnabled()) {
+					logger.info(String.format("[%s] scribe client %d successfully sent events %d",
+							ScribeRpcClient.this.sinkName, client.hashCode(), e.size()));
 				}
 
 				return null;
@@ -273,37 +280,37 @@ public class ScribeRpcClient extends AbstractRpcClient {
 		}
 		stateLock.lock();
 		try {
+			// name
+			this.sinkName = properties.getProperty(ScribeSinkConsts.CONFIG_SINK_NAME, "sink-" + hashCode());
 			HostInfo host = HostInfo.getHostInfoList(properties).get(0);
 			hostname = host.getHostName();
 			port = host.getPortNumber();
-			batchSize = Integer.parseInt(properties.getProperty(
-					RpcClientConfigurationConstants.CONFIG_BATCH_SIZE,
+			batchSize = Integer.parseInt(properties.getProperty(RpcClientConfigurationConstants.CONFIG_BATCH_SIZE,
 					RpcClientConfigurationConstants.DEFAULT_BATCH_SIZE.toString()));
 			requestTimeout = Long.parseLong(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_REQUEST_TIMEOUT,
-					String.valueOf(
-							RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
+					String.valueOf(RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS)));
 			if (requestTimeout < 1000) {
-				logger.warn("Request timeout specified less than 1s. Using default value instead.");
+				logger.warn(String.format("[%s] Request timeout specified less than 1s. Using default value instead.", this.sinkName));
 				requestTimeout = RpcClientConfigurationConstants.DEFAULT_REQUEST_TIMEOUT_MILLIS;
 			}
 			connectionPoolSize = Integer.parseInt(properties.getProperty(
 					RpcClientConfigurationConstants.CONFIG_CONNECTION_POOL_SIZE,
 					String.valueOf(RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE)));
 			if (connectionPoolSize < 1) {
-				logger.warn("Connection Pool Size specified is less than 1. Using default value instead.");
+				logger.warn(String.format("[%s] Connection Pool Size specified is less than 1. Using default value instead.", this.sinkName));
 				connectionPoolSize = RpcClientConfigurationConstants.DEFAULT_CONNECTION_POOL_SIZE;
 			}
 			connectionManager = new ConnectionPoolManager(connectionPoolSize);
 
 			// serialization
 			Context context = new Context();
-			context.put(SinkConsts.CONFIG_CATEGORY_HEADER,
-					properties.containsKey(SinkConsts.CONFIG_CATEGORY_HEADER) ? properties.getProperty(SinkConsts.CONFIG_CATEGORY_HEADER)
-							: SinkConsts.DEFAULT_CATEGORY_HEADER);
+			context.put(
+					SinkConsts.CONFIG_CATEGORY_HEADER,
+					properties.containsKey(SinkConsts.CONFIG_CATEGORY_HEADER) ? properties
+							.getProperty(SinkConsts.CONFIG_CATEGORY_HEADER) : SinkConsts.DEFAULT_CATEGORY_HEADER);
 			serializer = new ScribeSerializer();
 			serializer.configure(context);
-
 			connState = State.READY;
 		} catch (Throwable ex) {
 			// Failed to configure, kill the client.
@@ -313,7 +320,7 @@ public class ScribeRpcClient extends AbstractRpcClient {
 			} else if (ex instanceof RuntimeException) {
 				throw (RuntimeException) ex;
 			}
-			throw new FlumeException("Error while configuring RpcClient. ", ex);
+			throw new FlumeException(String.format("[%s] Error while configuring RpcClient. ", this.sinkName), ex);
 		} finally {
 			stateLock.unlock();
 		}
@@ -429,7 +436,8 @@ public class ScribeRpcClient extends AbstractRpcClient {
 					currentPoolSize--;
 				}
 				/*
-				 * Be cruel and close even the checked out clients. The threads writing using these will now get an exception.
+				 * Be cruel and close even the checked out clients. The threads writing using these will now get an
+				 * exception.
 				 */
 				for (ClientWrapper c : checkedOutClients) {
 					c.transport.close();

@@ -38,7 +38,7 @@ public final class ScribeSinkConsts extends SinkConsts {
     /**
      * The name the sink should use.
      */
-    public static final String CONFIG_SINK_NAME = "scribe.sink.name";
+    public static final String CONFIG_SINK_NAME = "sinkname";
     /**
      * Scribe host to send to.
      */
