@@ -140,6 +140,8 @@ public class ScribeSink extends AbstractSink implements Configurable {
 					logger.info(String.format("%s success send events %d", this.getName(), eventList.size()));
 				}
 			}
+			transaction.commit();
+			sinkCounter.addToEventDrainSuccessCount(eventList.size());
 		} catch (Throwable e) {
 			transaction.rollback();
 			logger.error(this.getName() + " exception while processing in Scribe Sink", e);
