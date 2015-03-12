@@ -107,45 +107,9 @@ public class ScribeRpcClient extends AbstractRpcClient {
 
 	@Override
 	public void append(Event event) throws EventDeliveryException {
-		// Thrift IPC client is not thread safe, so don't allow state changes or
-		// client.append* calls unless the lock is acquired.
-		ClientWrapper client = null;
-		boolean destroyedClient = false;
-		try {
-			if (!isActive()) {
-				throw new EventDeliveryException("Client was closed due to error. " + "Please create a new client");
-			}
-			client = connectionManager.checkout();
-			// final ThriftFlumeEvent thriftEvent = new ThriftFlumeEvent(event
-			// .getHeaders(), ByteBuffer.wrap(event.getBody()));
-
-			doAppend(client, serializer.serialize(event)).get(requestTimeout, TimeUnit.MILLISECONDS);
-		} catch (Throwable e) {
-			if (e instanceof ExecutionException) {
-				Throwable cause = e.getCause();
-				if (cause instanceof EventDeliveryException) {
-					throw (EventDeliveryException) cause;
-				} else if (cause instanceof TimeoutException) {
-					throw new EventDeliveryException("Append call timeout", cause);
-				}
-			}
-			destroyedClient = true;
-			// If destroy throws, we still don't want to reuse the client, so mark it
-			// as destroyed before we actually do.
-			if (client != null) {
-				connectionManager.destroy(client);
-			}
-			if (e instanceof Error) {
-				throw (Error) e;
-			} else if (e instanceof RuntimeException) {
-				throw (RuntimeException) e;
-			}
-			throw new EventDeliveryException("Failed to send event. ", e);
-		} finally {
-			if (client != null && !destroyedClient) {
-				connectionManager.checkIn(client);
-			}
-		}
+		List<Event> list = new ArrayList<Event>(1);
+		list.add(event);
+		this.appendBatch(list);
 	}
 
 	@Override

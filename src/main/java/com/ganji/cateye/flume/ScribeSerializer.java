@@ -29,7 +29,7 @@ public class ScribeSerializer implements MessageSerializer {
 	public ByteBuffer encodeToByteBuffer(LogEntry log, boolean compress) {
 		TMemoryBuffer buffer = new TMemoryBuffer(1024);
 		try {
-			log.write(new TBinaryProtocol(buffer));
+			log.write(new TCompactProtocol(buffer));
 		} catch (TException e) {
 			e.printStackTrace();
 			return null;
