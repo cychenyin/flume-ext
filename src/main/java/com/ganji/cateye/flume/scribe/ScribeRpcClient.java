@@ -65,6 +65,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ganji.cateye.flume.ScribeSerializer;
 import com.ganji.cateye.flume.SinkConsts;
+import com.ganji.cateye.utils.StatsDClientHelper;
 
 public class ScribeRpcClient extends AbstractRpcClient {
 	private static final Logger logger = LoggerFactory.getLogger(ScribeRpcClient.class);
@@ -82,6 +83,7 @@ public class ScribeRpcClient extends AbstractRpcClient {
 	private final Random random = new Random();
 	private ScribeSerializer serializer;
 	private String sinkName = "";
+	StatsDClientHelper stats = new StatsDClientHelper();
 
 	public ScribeRpcClient() {
 		stateLock = new ReentrantLock(true);
@@ -163,27 +165,6 @@ public class ScribeRpcClient extends AbstractRpcClient {
 		}
 	}
 
-	private Future<Void> doAppend(final ClientWrapper client, final LogEntry e) throws Exception {
-
-		return callTimeoutPool.submit(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				List<LogEntry> logs = new ArrayList<LogEntry>();
-				logs.add(e);
-				ResultCode result = client.client.Log(logs);
-				if (result != ResultCode.OK) {
-					throw new EventDeliveryException(String.format(
-							"[%s] ScribeRpcClient Failed to deliver a event to %s:%d. Server returned status : %s",
-							ScribeRpcClient.this.sinkName, hostname, port, result.name()));
-				} else if (logger.isInfoEnabled()) {
-					logger.info(String
-							.format("[%s] scribe client successfully sent 1 event.", ScribeRpcClient.this.sinkName));
-				}
-				return null;
-			}
-		});
-	}
-
 	private Future<Void> doAppendBatch(final ClientWrapper client, final List<LogEntry> e) throws Exception {
 
 		return callTimeoutPool.submit(new Callable<Void>() {
@@ -195,8 +176,8 @@ public class ScribeRpcClient extends AbstractRpcClient {
 							"[%s] ScribeRpcClient Failed to deliver events to %s:%d. Server returned status : %s",
 							ScribeRpcClient.this.sinkName, hostname, port, result.name()));
 				} else if (logger.isInfoEnabled()) {
-					logger.info(String.format("[%s] scribe client %d successfully sent events %d",
-							ScribeRpcClient.this.sinkName, client.hashCode(), e.size()));
+					logger.info(String.format("[%s] scribe client %d sent  %d events", ScribeRpcClient.this.sinkName, client.hashCode(), e.size()));
+					stats.incrementCounter(ScribeRpcClient.this.sinkName, e.size());
 				}
 
 				return null;

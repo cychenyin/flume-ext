@@ -68,6 +68,7 @@ import com.ganji.cateye.flume.PlainMessageSerializer;
 import com.ganji.cateye.flume.ScribeSerializer;
 import com.ganji.cateye.flume.SinkConsts;
 import com.ganji.cateye.flume.scribe.ScribeSinkConsts;
+import com.ganji.cateye.utils.StatsDClientHelper;
 
 public class KestrelRpcClient extends AbstractRpcClient {
 	private static final Logger logger = LoggerFactory.getLogger(KestrelRpcClient.class);
@@ -86,6 +87,7 @@ public class KestrelRpcClient extends AbstractRpcClient {
 	private MessageSerializer serializer;
 	RouteConfig routes = new RouteConfig();
 	private String sinkName = "";
+	StatsDClientHelper stats = new StatsDClientHelper();
 	
 	public KestrelRpcClient() {
 		stateLock = new ReentrantLock(true);
@@ -155,32 +157,6 @@ public class KestrelRpcClient extends AbstractRpcClient {
 		}
 	}
 
-	private Future<Void> doAppend(final ClientWrapper client, final Event e) throws Exception {
-
-		return callTimeoutPool.submit(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				LogEntry log = serializer.serialize(e);
-				String queue = routes.route(log.category);
-				List<ByteBuffer> list = new ArrayList<ByteBuffer>();
-				list.add(serializer.encodeToByteBuffer(log, false));
-				try {
-					client.client.put(queue, list, 0);
-					logger.info(String.format("[%s] kestrel client success send event 1", KestrelRpcClient.this.sinkName));
-				}catch(Throwable e) {
-					throw new EventDeliveryException(String.format("[%s] KestrelRpcClient Failed to deliver events. ", KestrelRpcClient.this.sinkName), e);
-				}
-//				if (result != 1) {
-//					logger.warn(KestrelRpcClient.this.sinkName + " kestrel client send return " + String.valueOf(result) + " [should be 1]");
-//					throw new EventDeliveryException("Failed to deliver events. Server returned status : " + String.valueOf(result) + " [should be 1]");
-//				} else if(logger.isInfoEnabled()) {
-//					logger.info(String.format("[%s] kestrel client success send event 1", KestrelRpcClient.this.sinkName));
-//				}
-				return null;
-			}
-		});
-	}
-
 	private Future<Void> doAppendBatch(final ClientWrapper client, final List<Event> e) throws Exception {
 
 		return callTimeoutPool.submit(new Callable<Void>() {
@@ -206,7 +182,8 @@ public class KestrelRpcClient extends AbstractRpcClient {
 					for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
 						result += client.client.put(e.getKey(), e.getValue(), 0);
 					}
-					logger.info(String.format("[%s] kestrel client %d success send events %d", KestrelRpcClient.this.sinkName, client.hashCode(), e.size()));
+					logger.info(String.format("[%s] kestrel client %d sent events %d", KestrelRpcClient.this.sinkName, client.hashCode(), e.size()));
+					stats.incrementCounter(KestrelRpcClient.this.sinkName, e.size());
 				} catch(Throwable e) {
 					throw new EventDeliveryException(String.format("[%s] KestrelRpcClient Failed to deliver events to. %s:%d", KestrelRpcClient.this.sinkName, hostname, port), e);
 				}
