@@ -178,11 +178,12 @@ public class KestrelRpcClient extends AbstractRpcClient {
 				}
 				try {
 					// send
+					long start = System.currentTimeMillis(); 
 					int result = 0;
 					for (Map.Entry<String, List<ByteBuffer>> e : items.entrySet()) {
 						result += client.client.put(e.getKey(), e.getValue(), 0);
-					}
-					logger.info(String.format("[%s] kestrel client %d sent events %d", KestrelRpcClient.this.sinkName, client.hashCode(), e.size()));
+					}					
+					logger.info(String.format("[%s] kestrel client %d sent events %d, cost %d ms", KestrelRpcClient.this.sinkName, client.hashCode(), e.size(), System.currentTimeMillis() - start));
 					stats.incrementCounter(KestrelRpcClient.this.sinkName, e.size());
 				} catch(Throwable e) {
 					throw new EventDeliveryException(String.format("[%s] KestrelRpcClient Failed to deliver events to. %s:%d", KestrelRpcClient.this.sinkName, hostname, port), e);

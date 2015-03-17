@@ -170,13 +170,14 @@ public class ScribeRpcClient extends AbstractRpcClient {
 		return callTimeoutPool.submit(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
+				long start = System.currentTimeMillis();
 				ResultCode result = client.client.Log(e);
 				if (result != ResultCode.OK) {
 					throw new EventDeliveryException(String.format(
 							"[%s] ScribeRpcClient Failed to deliver events to %s:%d. Server returned status : %s",
 							ScribeRpcClient.this.sinkName, hostname, port, result.name()));
 				} else if (logger.isInfoEnabled()) {
-					logger.info(String.format("[%s] scribe client %d sent  %d events", ScribeRpcClient.this.sinkName, client.hashCode(), e.size()));
+					logger.info(String.format("[%s] scribe client %d sent %d events,cost %d ms", ScribeRpcClient.this.sinkName, client.hashCode(), e.size(), System.currentTimeMillis() - start));
 					stats.incrementCounter(ScribeRpcClient.this.sinkName, e.size());
 				}
 
